@@ -11,8 +11,6 @@ import time
 import urllib.request
 import os
 import json
-#driver = webdriver.Edge()
-#driver.find_element(by=By.XPATH, value='//button') 
 
 class Scraper:
 
@@ -94,6 +92,7 @@ class Scraper:
     def get_image(self):
         image_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="sc-16r8icm-0 gpRPnR nameHeader"]')
         for image in image_container:
+            #containers are used as directly searching for elements can through error is they are altered on website
             img_tag = image.find_element(by=By.TAG_NAME, value='img')
             self.img = img_tag.get_attribute('src')
             self.img_list.append(self.img)
@@ -154,20 +153,16 @@ class Scraper:
     def local_save(self):
         
         path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/{self.id}"
-        #for self.id in self.dict_data:
         if not os.path.exists(path):
             os.makedirs(path)
-        #os.chdir(f'./raw_data/{self.id}/')
         
         if not os.path.exists(f"./raw_data/{self.id}/data.json"):
             with open(f"./raw_data/{self.id}/data.json", "w") as data:
                 json.dump(self.dict_data, data)
-                #data.write(dump)
 
         image_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/{self.id}/images"
         if not os.path.exists(image_folder_path):
             os.makedirs(image_folder_path)
-            #with open(image_path, "w") as images:
         
         image_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/{self.id}/images/{self.id}_logo.jpeg"
         urllib.request.urlretrieve(self.img, image_path)
@@ -225,28 +220,3 @@ if __name__ == '__main__':
     scraper()
 
 
-
-
-
-
-
-
-
-
-
-# def wrong_scraper():
-#     print("1st")
-#         Scraper.get_links(self)
-#         self.scroll_list = [self.driver.find_element(by=By.XPATH, value='//img[@class="coin-logo"]//img[@src="https://s2.coinmarketcap.com/static/img/coins/64x64/2.png"]'),
-#                             self.driver.find_element(by=By.XPATH, value='//img[@class="coin-logo"]//img[@src="https://s2.coinmarketcap.com/static/img/coins/64x64/1831.png"]'), 
-#                             self.driver.find_element(by=By.XPATH, value='//img[@class="coin-logo"]//img[@src="https://s2.coinmarketcap.com/static/img/coins/64x64/7278.png"]')]
-#         print("2nd")
-#         self.driver.execute_script(f"window.scrollTo(0, {self.scroll_list[0]});")
-#         print("3rd")
-#         Scraper.get_links()
-#         time.sleep(5)
-#         self.driver.execute_script(f"window.scrollTo(0, {self.scroll_list[1]});")
-#         Scraper.get_links()
-#         time.sleep(5)
-#         self.driver.execute_script(f"window.scrollTo(0, {self.scroll_list[2]});")
-#         #self.driver.execute_script("return arguments[0].scrollIntoView();", self.scroll_list[2])
