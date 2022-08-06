@@ -14,7 +14,68 @@ import os
 import json
 import pandas as pd
 
-class Scraper:
+
+class Scraper: 
+    def __init__ (self, URL: str = "https://coinmarketcap.com/"):
+        self.driver = webdriver.Edge()
+        self.driver.maximize_window()
+        self.driver.get(URL)
+        self.delay = 10
+
+    def click_element(self, xpath: str):
+        '''
+        Locates and clicks a element on the webpage
+
+        Parameters:
+        ---------
+        xpath: str
+            The elements Xpath to be clicked
+        '''
+        element = self.driver.find_element(By.XPATH, xpath)
+        element.click()
+
+    def find_elements_in_container(self, container_xpath: str, element_tag) -> list:
+        container = self.driver.find_element(By.XPATH, container_xpath)
+        elements_in_container = container.find_elements(By.XPATH, f'./{element_tag}')
+        return elements_in_container
+    
+    def close_popup(self, popup_xpath: str = '//div[@class="sc-8ukhc-2 iCMWiP"]', 
+                            popup_button_xpath: str = '//div[@class="gv-close"]'):
+
+        WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, popup_xpath)))
+        self.click_element(popup_button_xpath)
+        time.sleep(1)
+
+
+    def accept_cookies(self, cookies_xpath: str = '//*[@id="cmc-cookie-policy-banner"]', button_xpath: str = '//*[@class="cmc-cookie-policy-banner__close"]' ):
+        '''
+        Waits for the accept cookies element to appear then closes it.
+        '''
+        try:
+            WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, cookies_xpath)))
+            self.click_element(button_xpath)
+            # self.accept_cookies_button = self.driver.find_element(by=By.XPATH, value=button_xpath)
+            # self.accept_cookies_button.click()
+            time.sleep(1)
+        except TimeoutException:
+            print("Cookies are automatically accepted when browsing coinmarket.")
+
+    def change_currency(self):
+        '''
+        Opens the Select Currency button and selects British pound(GBP) when element is present.
+        '''
+        try:
+            self.click_element('//button[@title="Select Currency"]')
+            WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, '//*[@class="de9tta-2 iemqlh cmc-modal-wrapper has-title "]')))
+            time.sleep(2)
+            self.click_element('//*[@class="ig8pxp-0 jaunlC"]')
+        except:
+            pass
+
+
+
+
+class CoinScraper:
     '''
     A scraper class for the website coinmarketcap to obtain the data values for price, supply, etc. 
     Uses the package selenium to connect and interact with the website.
@@ -42,29 +103,21 @@ class Scraper:
     Methods:
     -------
     accept_cookies()
-        Closes cookies popup
-    
+        Closes cookies popup   
     change_currency()
-        Changes currency data is displayed in
-    
+        Changes currency data is displayed in  
     get_link()
         Finds the links for each crytpo coin in the page
-
     get_image()
         Finds the coin's logo in its page
-
     scroll_bottom()
         Scrolls to the bottom of the page
-
     search_bar()
         Makes the search bar interactable
-
     local_save()
         Saves raw data in local storage
-
     get_text_data()
         Locates and returns the text data on a coins unique page
-
     data_scrape()
         Goes through each coin's link and scrapes data
 
@@ -76,6 +129,7 @@ class Scraper:
         self.img_list = []
         self.img_name_list = []
         self.delay = 10
+        self.img_dict = {"ImageName": [], "ImageLink": []}
         self.coin_data_dict = {'CryptoName': [], 'UUID': [], 'URL': [], 'CurrentPrice': [], '24hrLowPrice': [], '24hrHighPrice': [], 'MarketCap': [], 'FullyDilutedMarketCap': [],
                          'Volume': [], 'Volume/MarketCap': [], 'CirculatingSupply': []}
 
@@ -158,6 +212,8 @@ class Scraper:
             #self.local_save()
             url_counter += 1
         
+        return url_counter
+        
 
     #public
     def get_image(self):
@@ -168,10 +224,12 @@ class Scraper:
         for image in image_container:
             #containers are used as directly searching for elements can through error is they are altered on website
             img_tag = image.find_element(by=By.TAG_NAME, value='img')
-            self.img = img_tag.get_attribute('src')
-            self.img_list.append(self.img)
-            # self.img_name = img_tag.get_attribute('alt')
-            # self.img_name_list.append(self.img_name)
+            img_link = img_tag.get_attribute('src')
+            self.img_dict["ImageLink"].append(img_link)
+            self.img_list.append(img_link)
+            img_name = img_tag.get_attribute('alt')
+            self.img_dict["ImageName"].append(img_name)
+            self.img_name_list.append(img_name)
             #return image src -> is it the same for test (test_src)
             time.sleep(2)
             
@@ -231,7 +289,7 @@ class Scraper:
         #self.uuid_list.append(self.my_uuid)
 
         
-        return id_tag
+        return price_tag, id_tag, low_tag, high_tag, my_uuid, values_container[0].text, values_container[1].text, values_container[2].text, values_container[3].text, 
         
     #1 large json for text data
     #1 image data table
@@ -242,26 +300,34 @@ class Scraper:
         #in jypter notebook make the transformations
     #seperate dataframe from images
 
+   # def make_dataframe(self, dict: dict) -> pd.DataFrame:
+    def make_dataframe(self):
+        combined_dataframe = pd.DataFrame(self.coin_data_dict)
+        return combined_dataframe
+
+
     def local_save(self):
         '''
-        Makes a directory for each unique coin and saves their raw data dict as a .json file.
-        Also makes an images directory in each coin directory and saves logo image .jpeg
+        Makes a.json file for the combined dictionary storing all coins data.
+        Also makes an images directory saves each logos image .jpeg
         '''
-        crypto_name = self.get_text_data()
-        path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/{crypto_name}"
-        if not os.path.exists(path):
-            os.makedirs(path)
         
-        if not os.path.exists(f"./raw_data/{crypto_name}/data.json"):
-            with open(f"./raw_data/{crypto_name}/data.json", "w") as data:
-                json.dump(self.dict_data, data)
+        if not os.path.exists(f"./raw_data/total_data.json"):
+            with open(f"./raw_data/total_data.json", "w") as data:
+                json.dump(self.coin_data_dict, data)
 
-        image_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/{crypto_name}/images"
+        #if not os.path.exists(f"./raw_data/{self.id}/data.json"):
+        image_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images"
         if not os.path.exists(image_folder_path):
             os.makedirs(image_folder_path)
         
-        image_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/{crypto_name}/images/{crypto_name}_logo.jpeg"
-        urllib.request.urlretrieve(self.img, image_path)
+        #########unfinished
+        x = self.img_dict["ImageName"]
+        print(x)
+        # for value in x:
+        #     image_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images/{self.img_name_list}_logo.jpeg"
+        #     urllib.request.urlretrieve(self.img_list, image_path)
+
         
 
     def search_bar(self, text_search: Str = " test "):
@@ -272,12 +338,15 @@ class Scraper:
         text_search: str
             The desired text to be searched.
         '''
-        time.sleep(5)
-        self.search_bar = self.driver.find_element(by=By.XPATH, value='//*[@class="zafg3t-1 gaWePq"]')
-        self.search_bar.click()
+        search_bar = self.driver.find_element(by=By.XPATH, value='//div[@class="zafg3t-1 gaWePq"]')
+        search_bar.click()
+
+        #changes element to current interactable element on page
+        active = self.driver.switch_to.active_element
         time.sleep(2)
-        self.search_bar.send_keys(text_search)
-        self.search_bar.send_keys(Keys.RETURN)
+        active.send_keys(text_search)
+        active.send_keys(Keys.RETURN)
+        time.sleep(3)
 
     def scroll_bottom(self):
         '''
@@ -294,7 +363,7 @@ class Scraper:
             scroll_down_y_axis += 2000
 
 def scraper():
-    scraper = Scraper()
+    scraper = CoinScraper()
     time.sleep(2)
     scraper.accept_cookies()
     scraper.change_currency()
@@ -306,9 +375,7 @@ def scraper():
     # #print(scraper.img_name_list)
     #print(scraper.dict)
     #print(scraper.nested_dict)
-    print(scraper.coin_data_dict)
-    x = pd.DataFrame(scraper.coin_data_dict)
-    print(x)
+    scraper.local_save()
     exit()
 
 
