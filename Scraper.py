@@ -13,6 +13,7 @@ import urllib.request
 import os
 import json
 import pandas as pd
+import itertools
 
 
 class Scraper: 
@@ -70,7 +71,7 @@ class Scraper:
             time.sleep(2)
             self.click_element('//*[@class="ig8pxp-0 jaunlC"]')
         except:
-            pass
+            print("Currency already in GBP")
 
 
 
@@ -125,9 +126,6 @@ class CoinScraper:
     def __init__ (self, URL: str = "https://coinmarketcap.com/"):
         self.driver = webdriver.Edge()
         self.driver.get(URL)
-        self.url_list = []
-        self.img_list = []
-        self.img_name_list = []
         self.delay = 10
         self.img_dict = {"ImageName": [], "ImageLink": []}
         self.coin_data_dict = {'CryptoName': [], 'UUID': [], 'URL': [], 'CurrentPrice': [], '24hrLowPrice': [], '24hrHighPrice': [], 'MarketCap': [], 'FullyDilutedMarketCap': [],
@@ -226,10 +224,8 @@ class CoinScraper:
             img_tag = image.find_element(by=By.TAG_NAME, value='img')
             img_link = img_tag.get_attribute('src')
             self.img_dict["ImageLink"].append(img_link)
-            self.img_list.append(img_link)
             img_name = img_tag.get_attribute('alt')
             self.img_dict["ImageName"].append(img_name)
-            self.img_name_list.append(img_name)
             #return image src -> is it the same for test (test_src)
             time.sleep(2)
             
@@ -288,6 +284,12 @@ class CoinScraper:
         self.coin_data_dict['UUID'].append(my_uuid)
         #self.uuid_list.append(self.my_uuid)
 
+        ##########IDEA TO REMOVE £ AND COMMAS
+        # >>> with_dots = ["processing..", "...strings", "with....", "..map.."]
+
+        # >>> list(map(lambda s: s.strip("."), with_dots))
+        # ['processing', 'strings', 'with', 'map']
+
         
         return price_tag, id_tag, low_tag, high_tag, my_uuid, values_container[0].text, values_container[1].text, values_container[2].text, values_container[3].text, 
         
@@ -299,6 +301,47 @@ class CoinScraper:
         #read in json
         #in jypter notebook make the transformations
     #seperate dataframe from images
+
+
+    def get_text_data_2(self):
+
+        max_page_height = driver.execute_script("return document.documentElement.scrollHeight")
+        print(max_page_height)
+        y = 2000
+        driver.execute_script(f"window.scrollTo(0, {y});")
+        time.sleep(3)
+        show_more_button = driver.find_elements(by=By.XPATH, value='//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 iutcov"]//div[@class="sc-16r8icm-0 nds9rn-0 dAxhCK"]')
+
+        for x in show_more_button:
+            sh = x.find_element(by=By.XPATH, value='button')
+            sh.click()
+
+
+        data_container = driver.find_elements(by=By.XPATH, value='//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 iutcov"]//div[@class="sc-16r8icm-0 nds9rn-0 dAxhCK"]')
+
+        list1 = data_container[0].text.split('\n')
+
+        # using list comprehension + replace()
+        # Replace substring in list of strings
+        res = [sub.replace('$', ' ') for sub in list1] 
+        res1 = [sub.replace(',','') for sub in res]
+        #print(type(res[2]))
+        #print(str(res1))
+        # items_get = [2, 8, 9, 12, 14, 15, 16, 18, 20, 54, 55, 56]
+        # res2 = [e for i, e in enumerate(res1) if i in items_get]
+        # print(res2)
+
+        coin_data_dict['MarketCap'].append(res1[18])
+        coin_data_dict['FullyDilutedMarketCap'].append(res1[20])
+        coin_data_dict['Volume'].append(res1[12])
+        coin_data_dict['Volume/MarketCap'].append(res1[14])
+        coin_data_dict['CirculatingSupply'].append(res1[54])
+        coin_data_dict['CurrentPrice'].append(res1[2])
+        coin_data_dict['24hrLowPrice'].append(res1[8])
+        coin_data_dict['24hrHighPrice'].append(res1[9])
+        coin_data_dict['MarketRank'].append(res1[16])
+        coin_data_dict['MarketDominance'].append(res1[15])
+
 
    # def make_dataframe(self, dict: dict) -> pd.DataFrame:
     def make_dataframe(self):
@@ -321,12 +364,13 @@ class CoinScraper:
         if not os.path.exists(image_folder_path):
             os.makedirs(image_folder_path)
         
-        #########unfinished
-        x = self.img_dict["ImageName"]
-        print(x)
-        # for value in x:
-        #     image_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images/{self.img_name_list}_logo.jpeg"
-        #     urllib.request.urlretrieve(self.img_list, image_path)
+        img_name_list = self.img_dict["ImageName"]
+        img_link_list = self.img_dict["ImageLink"]
+
+        # zip function allows iteration for 2+ lists and runs until smallest list ends
+        for (name, link) in zip(img_name_list, img_link_list):
+            image_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images/{name}_logo.jpeg"
+            urllib.request.urlretrieve(link, image_path)
 
         
 
@@ -375,6 +419,8 @@ def scraper():
     # #print(scraper.img_name_list)
     #print(scraper.dict)
     #print(scraper.nested_dict)
+    x = pd.DataFrame(scraper.coin_data_dict)
+    print(x)
     scraper.local_save()
     exit()
 
