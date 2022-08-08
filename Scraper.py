@@ -15,7 +15,6 @@ import json
 import pandas as pd
 import itertools
 
-
 class Scraper: 
     def __init__ (self, URL: str = "https://coinmarketcap.com/"):
         self.driver = webdriver.Edge()
@@ -36,9 +35,10 @@ class Scraper:
         element.click()
 
     def find_elements_in_container(self, container_xpath: str, element_tag) -> list:
-        container = self.driver.find_element(By.XPATH, container_xpath)
-        elements_in_container = container.find_elements(By.XPATH, f'./{element_tag}')
-        return elements_in_container
+        container = self.driver.find_elements(By.XPATH, container_xpath)
+        for element in container:
+            elements_in_container = element.find_element(By.XPATH, f'./{element_tag}')
+            return elements_in_container
     
     def close_popup(self, popup_xpath: str = '//div[@class="sc-8ukhc-2 iCMWiP"]', 
                             popup_button_xpath: str = '//div[@class="gv-close"]'):
@@ -46,7 +46,6 @@ class Scraper:
         WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, popup_xpath)))
         self.click_element(popup_button_xpath)
         time.sleep(1)
-
 
     def accept_cookies(self, cookies_xpath: str = '//*[@id="cmc-cookie-policy-banner"]', button_xpath: str = '//*[@class="cmc-cookie-policy-banner__close"]' ):
         '''
@@ -61,6 +60,7 @@ class Scraper:
         except TimeoutException:
             print("Cookies are automatically accepted when browsing coinmarket.")
 
+    #maybe change to have 3 letter currency in parameters and pass it in
     def change_currency(self):
         '''
         Opens the Select Currency button and selects British pound(GBP) when element is present.
@@ -70,13 +70,20 @@ class Scraper:
             WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, '//*[@class="de9tta-2 iemqlh cmc-modal-wrapper has-title "]')))
             time.sleep(2)
             self.click_element('//*[@class="ig8pxp-0 jaunlC"]')
+
+            ####If max window code is below get(URL) in init method, page layout changes and below is how to change currency
+            # self.click_element('//*[@class="sc-1pyr0bh-0 bSnrp sc-1g16avq-0 kBKzKs"]')
+            # WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, '//*[@class="vxp8h8-0 VMCHA"]')))
+            # self.click_element('//button[@data-qa-id="button-global-currency-picker"]')
+            # self.click_element('//*[@class="ig8pxp-0 jaunlC"]')
+
         except:
             print("Currency already in GBP")
 
 
 
 
-class CoinScraper:
+class CoinScraper(Scraper):
     '''
     A scraper class for the website coinmarketcap to obtain the data values for price, supply, etc. 
     Uses the package selenium to connect and interact with the website.
@@ -124,45 +131,15 @@ class CoinScraper:
 
     '''
     def __init__ (self, URL: str = "https://coinmarketcap.com/"):
-        self.driver = webdriver.Edge()
-        self.driver.get(URL)
-        self.delay = 10
+        super().__init__()
+        # self.driver = webdriver.Edge()
+        # # it is important to max window before get(URL) as this allows more options to appear on page such as language and price
+        # self.driver.maximize_window()
+        # self.driver.get(URL)
+        # self.delay = 10
         self.img_dict = {"ImageName": [], "ImageLink": []}
         self.coin_data_dict = {'CryptoName': [], 'UUID': [], 'URL': [], 'CurrentPrice': [], '24hrLowPrice': [], '24hrHighPrice': [], 'MarketCap': [], 'FullyDilutedMarketCap': [],
                          'Volume': [], 'Volume/MarketCap': [], 'CirculatingSupply': []}
-
-    #"_accept_method" = private method
-    def accept_cookies(self):
-        '''
-        Waits for the accept cookies element to appear then closes it.
-        '''
-        try:
-            WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, '//*[@id="cmc-cookie-policy-banner"]')))
-            self.accept_cookies_button = self.driver.find_element(by=By.XPATH, value='//*[@class="cmc-cookie-policy-banner__close"]')
-            self.accept_cookies_button.click()
-            time.sleep(1)
-            #return true for test
-        except TimeoutException:
-            print("Cookies are automatically accepted when browsing coinmarket.")
-            #return flase for test
-
-    #method to select GBP for currency
-    #maybe change to have 3 letter currency in parameters and pass it in
-    def change_currency(self):
-        '''
-        Opens the Select Currency button and selects British pound(GBP) when element is present.
-        '''
-        try:
-            settings_button = self.driver.find_element(by=By.XPATH, value='//*[@class="sc-1pyr0bh-0 bSnrp sc-1g16avq-0 kBKzKs"]')
-            settings_button.click()
-            WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, '//*[@class="vxp8h8-0 VMCHA"]')))
-            select_currency_button = self.driver.find_element(by=By.XPATH, value='//button[@data-qa-id="button-global-currency-picker"]')
-            select_currency_button.click()
-            currency = self.driver.find_element(by=By.XPATH, value='//*[@class="ig8pxp-0 jaunlC"]')
-            time.sleep(2)
-            currency.click()
-        except:
-            pass
 
     #public
     def get_links(self):
@@ -218,16 +195,26 @@ class CoinScraper:
         '''
         Locates the coin's image logo by container, then returns its src and alt for img link and name respectively
         '''
-        image_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="sc-16r8icm-0 gpRPnR nameHeader"]')
-        for image in image_container:
-            #containers are used as directly searching for elements can through error is they are altered on website
-            img_tag = image.find_element(by=By.TAG_NAME, value='img')
-            img_link = img_tag.get_attribute('src')
-            self.img_dict["ImageLink"].append(img_link)
-            img_name = img_tag.get_attribute('alt')
-            self.img_dict["ImageName"].append(img_name)
-            #return image src -> is it the same for test (test_src)
-            time.sleep(2)
+
+        img_tag = self.find_elements_in_container('//div[@class="sc-16r8icm-0 gpRPnR nameHeader"]', 'img')
+        img_link = img_tag.get_attribute('src')
+        self.img_dict["ImageLink"].append(img_link)
+        img_name = img_tag.get_attribute('alt')
+        self.img_dict["ImageName"].append(img_name)
+        return img_link, img_name
+
+        ####Non inheritance version of image scrape
+        # image_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="sc-16r8icm-0 gpRPnR nameHeader"]')
+        # for image in image_container:
+        #     #containers are used as directly searching for elements can through error is they are altered on website
+        #     img_tag = image.find_element(by=By.TAG_NAME, value='img')
+        #     img_link = img_tag.get_attribute('src')
+        #     self.img_dict["ImageLink"].append(img_link)
+        #     img_name = img_tag.get_attribute('alt')
+        #     self.img_dict["ImageName"].append(img_name)
+        #     #return image src -> is it the same for test (test_src)
+        #     time.sleep(2)
+        #     return img_link, img_name
             
     #public
     def get_text_data(self):
@@ -305,12 +292,12 @@ class CoinScraper:
 
     def get_text_data_2(self):
 
-        max_page_height = driver.execute_script("return document.documentElement.scrollHeight")
+        max_page_height = self.driver.execute_script("return document.documentElement.scrollHeight")
         print(max_page_height)
         y = 2000
-        driver.execute_script(f"window.scrollTo(0, {y});")
+        self.driver.execute_script(f"window.scrollTo(0, {y});")
         time.sleep(3)
-        show_more_button = driver.find_elements(by=By.XPATH, value='//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 iutcov"]//div[@class="sc-16r8icm-0 nds9rn-0 dAxhCK"]')
+        show_more_button = self.driver.find_elements(by=By.XPATH, value='//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 iutcov"]//div[@class="sc-16r8icm-0 nds9rn-0 dAxhCK"]')
 
         for x in show_more_button:
             sh = x.find_element(by=By.XPATH, value='button')
@@ -331,16 +318,16 @@ class CoinScraper:
         # res2 = [e for i, e in enumerate(res1) if i in items_get]
         # print(res2)
 
-        coin_data_dict['MarketCap'].append(res1[18])
-        coin_data_dict['FullyDilutedMarketCap'].append(res1[20])
-        coin_data_dict['Volume'].append(res1[12])
-        coin_data_dict['Volume/MarketCap'].append(res1[14])
-        coin_data_dict['CirculatingSupply'].append(res1[54])
-        coin_data_dict['CurrentPrice'].append(res1[2])
-        coin_data_dict['24hrLowPrice'].append(res1[8])
-        coin_data_dict['24hrHighPrice'].append(res1[9])
-        coin_data_dict['MarketRank'].append(res1[16])
-        coin_data_dict['MarketDominance'].append(res1[15])
+        self.coin_data_dict['MarketCap'].append(res1[18])
+        self.coin_data_dict['FullyDilutedMarketCap'].append(res1[20])
+        self.coin_data_dict['Volume'].append(res1[12])
+        self.coin_data_dict['Volume/MarketCap'].append(res1[14])
+        self.coin_data_dict['CirculatingSupply'].append(res1[54])
+        self.coin_data_dict['CurrentPrice'].append(res1[2])
+        self.coin_data_dict['24hrLowPrice'].append(res1[8])
+        self.coin_data_dict['24hrHighPrice'].append(res1[9])
+        self.coin_data_dict['MarketRank'].append(res1[16])
+        self.coin_data_dict['MarketDominance'].append(res1[15])
 
 
    # def make_dataframe(self, dict: dict) -> pd.DataFrame:
@@ -409,19 +396,22 @@ class CoinScraper:
 def scraper():
     scraper = CoinScraper()
     time.sleep(2)
+    scraper.close_popup()
     scraper.accept_cookies()
     scraper.change_currency()
     #scraper.search_bar()
+    
     scraper.scroll_bottom()
     scraper.data_scrape(coins_to_scrape = 3)
+
     # print(scraper.img_list)
     # print(len(scraper.img_list))
     # #print(scraper.img_name_list)
-    #print(scraper.dict)
-    #print(scraper.nested_dict)
-    x = pd.DataFrame(scraper.coin_data_dict)
-    print(x)
-    scraper.local_save()
+    print(scraper.img_dict)
+    print(scraper.coin_data_dict)
+    # x = pd.DataFrame(scraper.coin_data_dict)
+    # print(x)
+    #scraper.local_save()
     exit()
 
 
