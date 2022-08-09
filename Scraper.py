@@ -33,6 +33,7 @@ class Scraper:
         '''
         element = self.driver.find_element(By.XPATH, xpath)
         element.click()
+        #can test xpath, whether valid or not, can mock find_element()
 
     def find_elements_in_container(self, container_xpath: str, element_tag) -> list:
         container = self.driver.find_elements(By.XPATH, container_xpath)
@@ -138,8 +139,8 @@ class CoinScraper(Scraper):
         # self.driver.get(URL)
         # self.delay = 10
         self.img_dict = {"ImageName": [], "ImageLink": []}
-        self.coin_data_dict = {'CryptoName': [], 'UUID': [], 'URL': [], 'CurrentPrice': [], '24hrLowPrice': [], '24hrHighPrice': [], 'MarketCap': [], 'FullyDilutedMarketCap': [],
-                         'Volume': [], 'Volume/MarketCap': [], 'CirculatingSupply': []}
+        self.coin_data_dict = {'CryptoName': [], 'UUID': [], 'URL': [], 'CurrentPrice': [], '24hrLowPrice': [], '24hrHighPrice': [], 'MarketCap': [], 
+                                'FullyDilutedMarketCap': [], 'Volume': [], 'Volume/MarketCap': [], 'CirculatingSupply': [], 'MarketRank': [], 'MarketDominance (%)': []}
 
     #public
     def get_links(self):
@@ -182,11 +183,10 @@ class CoinScraper(Scraper):
             URL = coin_link_list[url_counter]
             self.driver.get(URL)
             self.get_image()
-            self.get_text_data()
+            self.get_text_data_2()
             self.coin_data_dict['URL'].append(coin_link_list[url_counter])
             #self.local_save()
             url_counter += 1
-        
         return url_counter
         
 
@@ -217,68 +217,68 @@ class CoinScraper(Scraper):
         #     return img_link, img_name
             
     #public
-    def get_text_data(self):
-        '''
-        Scrapes the data from the coin's specific webpage and appending them to the coin_data dictionary.
-        This method is called in each iteration of the data_scrape method to populate the dictionary
-        with each coins data.
-        Price, 24hr low and high are obtained from the same container using specific xpaths and .text
-        ID is found directly calling the unique class xpath.
-        MarketCap, FullyDilutedMarketCap, Volume, Volume/MarketCap, CirculatingSupply are found in the same 
-        container and using .text at specific positions in the containers list.
-        A UUID was also generated using the package.
+    # def get_text_data(self):
+    #     '''
+    #     Scrapes the data from the coin's specific webpage and appending them to the coin_data dictionary.
+    #     This method is called in each iteration of the data_scrape method to populate the dictionary
+    #     with each coins data.
+    #     Price, 24hr low and high are obtained from the same container using specific xpaths and .text
+    #     ID is found directly calling the unique class xpath.
+    #     MarketCap, FullyDilutedMarketCap, Volume, Volume/MarketCap, CirculatingSupply are found in the same 
+    #     container and using .text at specific positions in the containers list.
+    #     A UUID was also generated using the package.
         
-        '''
-        # #dict for xpaths
-        # #make dict with value
-        # new_dict = {}
-        # for key, value in self.nested_dict.items():
-        #     #iterates through the keys and values ->
-        #     try:
-        #         if key == "etc":
-        #             try: 
-        #                 test = self.driver.find_elements(by=By.XPATH)
-        #             except:
-        #                 pass
-        #         web_element = self.driver.find_elements(by=By.XPATH)
+    #     '''
+    #     # #dict for xpaths
+    #     # #make dict with value
+    #     # new_dict = {}
+    #     # for key, value in self.nested_dict.items():
+    #     #     #iterates through the keys and values ->
+    #     #     try:
+    #     #         if key == "etc":
+    #     #             try: 
+    #     #                 test = self.driver.find_elements(by=By.XPATH)
+    #     #             except:
+    #     #                 pass
+    #     #         web_element = self.driver.find_elements(by=By.XPATH)
 
-        # #extract element by xpath to test -> find.element not find.elements
+    #     # #extract element by xpath to test -> find.element not find.elements
         
-        # for key, xpath
-        price_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="sc-16r8icm-0 kjciSH priceSection"]')
-        for price in price_container:
-            price_tag = price.find_element(by=By.XPATH, value='//div[@class="priceValue "]').text
-            self.coin_data_dict['CurrentPrice'].append(price_tag)
-            low_tag = price.find_element(by=By.XPATH, value='//div[@class="sc-16r8icm-0 lipEFG"]//span[@class="n78udj-5 dBJPYV"]').text
-            self.coin_data_dict['24hrLowPrice'].append(low_tag)
-            high_tag = price.find_element(by=By.XPATH, value='//div[@class="sc-16r8icm-0 SjVBR"]//span[@class="n78udj-5 dBJPYV"]').text
-            self.coin_data_dict['24hrHighPrice'].append(high_tag)
+    #     # for key, xpath
+    #     price_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="sc-16r8icm-0 kjciSH priceSection"]')
+    #     for price in price_container:
+    #         price_tag = price.find_element(by=By.XPATH, value='//div[@class="priceValue "]').text
+    #         self.coin_data_dict['CurrentPrice'].append(price_tag)
+    #         low_tag = price.find_element(by=By.XPATH, value='//div[@class="sc-16r8icm-0 lipEFG"]//span[@class="n78udj-5 dBJPYV"]').text
+    #         self.coin_data_dict['24hrLowPrice'].append(low_tag)
+    #         high_tag = price.find_element(by=By.XPATH, value='//div[@class="sc-16r8icm-0 SjVBR"]//span[@class="n78udj-5 dBJPYV"]').text
+    #         self.coin_data_dict['24hrHighPrice'].append(high_tag)
 
 
-        title = self.driver.find_element(by=By.XPATH, value='//h2[@class="sc-1q9q90x-0 jCInrl h1"]').text
-        id_tag = title.replace('\n', ' (') + ")"
-        self.coin_data_dict['CryptoName'].append(id_tag)
+    #     title = self.driver.find_element(by=By.XPATH, value='//h2[@class="sc-1q9q90x-0 jCInrl h1"]').text
+    #     id_tag = title.replace('\n', ' (') + ")"
+    #     self.coin_data_dict['CryptoName'].append(id_tag)
         
-        values_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="statsValue"]')
-        self.coin_data_dict['MarketCap'].append(values_container[0].text)
-        self.coin_data_dict['FullyDilutedMarketCap'].append(values_container[1].text)
-        self.coin_data_dict['Volume'].append(values_container[2].text)
-        self.coin_data_dict['Volume/MarketCap'].append(values_container[3].text)
-        self.coin_data_dict['CirculatingSupply'].append(values_container[4].text)
+    #     values_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="statsValue"]')
+    #     self.coin_data_dict['MarketCap'].append(values_container[0].text)
+    #     self.coin_data_dict['FullyDilutedMarketCap'].append(values_container[1].text)
+    #     self.coin_data_dict['Volume'].append(values_container[2].text)
+    #     self.coin_data_dict['Volume/MarketCap'].append(values_container[3].text)
+    #     self.coin_data_dict['CirculatingSupply'].append(values_container[4].text)
 
 
-        my_uuid = uuid.uuid4().hex
-        self.coin_data_dict['UUID'].append(my_uuid)
-        #self.uuid_list.append(self.my_uuid)
+    #     my_uuid = uuid.uuid4().hex
+    #     self.coin_data_dict['UUID'].append(my_uuid)
+    #     #self.uuid_list.append(self.my_uuid)
 
-        ##########IDEA TO REMOVE £ AND COMMAS
-        # >>> with_dots = ["processing..", "...strings", "with....", "..map.."]
+    #     ##########IDEA TO REMOVE £ AND COMMAS
+    #     # >>> with_dots = ["processing..", "...strings", "with....", "..map.."]
 
-        # >>> list(map(lambda s: s.strip("."), with_dots))
-        # ['processing', 'strings', 'with', 'map']
+    #     # >>> list(map(lambda s: s.strip("."), with_dots))
+    #     # ['processing', 'strings', 'with', 'map']
 
         
-        return price_tag, id_tag, low_tag, high_tag, my_uuid, values_container[0].text, values_container[1].text, values_container[2].text, values_container[3].text, 
+    #     return price_tag, id_tag, low_tag, high_tag, my_uuid, values_container[0].text, values_container[1].text, values_container[2].text, values_container[3].text, 
         
     #1 large json for text data
     #1 image data table
@@ -292,6 +292,13 @@ class CoinScraper(Scraper):
 
     def get_text_data_2(self):
 
+
+        title = self.driver.find_element(by=By.XPATH, value='//h2[@class="sc-1q9q90x-0 jCInrl h1"]').text
+        id_tag = title.replace('\n', ' (') + ")"
+        self.coin_data_dict['CryptoName'].append(id_tag)
+
+        time.sleep(2)
+
         max_page_height = self.driver.execute_script("return document.documentElement.scrollHeight")
         print(max_page_height)
         y = 2000
@@ -303,37 +310,47 @@ class CoinScraper(Scraper):
             sh = x.find_element(by=By.XPATH, value='button')
             sh.click()
 
-
-        data_container = driver.find_elements(by=By.XPATH, value='//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 iutcov"]//div[@class="sc-16r8icm-0 nds9rn-0 dAxhCK"]')
+        data_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 iutcov"]//div[@class="sc-16r8icm-0 nds9rn-0 dAxhCK"]')
 
         list1 = data_container[0].text.split('\n')
 
-        # using list comprehension + replace()
-        # Replace substring in list of strings
-        res = [sub.replace('$', ' ') for sub in list1] 
-        res1 = [sub.replace(',','') for sub in res]
-        #print(type(res[2]))
-        #print(str(res1))
-        # items_get = [2, 8, 9, 12, 14, 15, 16, 18, 20, 54, 55, 56]
-        # res2 = [e for i, e in enumerate(res1) if i in items_get]
-        # print(res2)
+        self.coin_data_dict['MarketCap'].append(list1[18])
+        self.coin_data_dict['FullyDilutedMarketCap'].append(list1[20])
+        self.coin_data_dict['Volume'].append(list1[12])
+        self.coin_data_dict['Volume/MarketCap'].append(list1[14])
+        self.coin_data_dict['CirculatingSupply'].append(list1[54])
+        self.coin_data_dict['CurrentPrice'].append(list1[2])
+        self.coin_data_dict['24hrLowPrice'].append(list1[8])
+        self.coin_data_dict['24hrHighPrice'].append(list1[9])
+        self.coin_data_dict['MarketRank'].append(list1[16])
+        self.coin_data_dict['MarketDominance (%)'].append(list1[15])
 
-        self.coin_data_dict['MarketCap'].append(res1[18])
-        self.coin_data_dict['FullyDilutedMarketCap'].append(res1[20])
-        self.coin_data_dict['Volume'].append(res1[12])
-        self.coin_data_dict['Volume/MarketCap'].append(res1[14])
-        self.coin_data_dict['CirculatingSupply'].append(res1[54])
-        self.coin_data_dict['CurrentPrice'].append(res1[2])
-        self.coin_data_dict['24hrLowPrice'].append(res1[8])
-        self.coin_data_dict['24hrHighPrice'].append(res1[9])
-        self.coin_data_dict['MarketRank'].append(res1[16])
-        self.coin_data_dict['MarketDominance'].append(res1[15])
+        my_uuid = uuid.uuid4().hex
+        self.coin_data_dict['UUID'].append(my_uuid)
+    
+
 
 
    # def make_dataframe(self, dict: dict) -> pd.DataFrame:
     def make_dataframe(self):
-        combined_dataframe = pd.DataFrame(self.coin_data_dict)
-        return combined_dataframe
+        df = pd.DataFrame(self.coin_data_dict)
+        df = df.applymap(lambda s:s.lower() if type(s) == str else s)
+
+        cols = ['CurrentPrice', '24hrLowPrice', '24hrHighPrice', 'MarketCap', 'FullyDilutedMarketCap', 'Volume', 'Volume/MarketCap', 
+                'CirculatingSupply', 'MarketRank', 'MarketDominance (%)']
+        #df[cols] = df[cols].applymap(lambda s:s.lower() if type(s) == str else s)
+        df[cols] = df[cols].replace({'\£':'', ',': '', '#': '', 'a': '', 'b': '', 'c': '', 'd': '', 'e': '', 'f': '', 'g': '',
+                                        'h': '', 'i': '', 'j': '', 'k': '', 'l': '', 'm': '', 'n': '', 'o': '', 'p': '',
+                                        'q': '', 'r': '', 's': '', 't': '', 'u': '', 'v': '', 'w': '', 'x': '', 'y': '', 'z': '',
+                                        '/': '', '%': '', ' ': ''}, regex=True) 
+                                        #ifnot
+        df[cols] = df[cols].astype(float)
+        #df['CurrentPrice'] = df['CurrentPrice'].astype(float)
+        #df = df.astype({[cols]: float})
+        print(df)
+        print(df.dtypes)
+
+        return df
 
 
     def local_save(self):
@@ -341,7 +358,7 @@ class CoinScraper(Scraper):
         Makes a.json file for the combined dictionary storing all coins data.
         Also makes an images directory saves each logos image .jpeg
         '''
-        
+        #convert dataframe back to dict
         if not os.path.exists(f"./raw_data/total_data.json"):
             with open(f"./raw_data/total_data.json", "w") as data:
                 json.dump(self.coin_data_dict, data)
@@ -407,8 +424,10 @@ def scraper():
     # print(scraper.img_list)
     # print(len(scraper.img_list))
     # #print(scraper.img_name_list)
-    print(scraper.img_dict)
-    print(scraper.coin_data_dict)
+    # print(scraper.img_dict)
+    # print(scraper.coin_data_dict)
+    scraper.make_dataframe()
+
     # x = pd.DataFrame(scraper.coin_data_dict)
     # print(x)
     #scraper.local_save()
