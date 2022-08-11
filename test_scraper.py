@@ -19,6 +19,13 @@ class ScraperTestCase(unittest.TestCase):
         del self.s.driver
         return
 
+    @patch('scraper.Scraper.click_element')
+    def test_click_element(self,
+                            mock_click_element: Mock):
+        xpath_test = '//div[@class="gv-close"]'
+
+
+
     #When using patch to test methods being tested, it should be called in the class where it is used from, not where defined
     #Can mock any method such as time.sleep or send_keys
     #e.g. @patch('selenium.webdriver.remote.webelement.Webelement.send_keys')
@@ -41,6 +48,11 @@ class ScraperTestCase(unittest.TestCase):
         text_call_count = mock_get_text_data.call_count
         self.assertEqual(text_call_count, 3)
         
+        iterations = self.s.data_scrape(3)
+        #self.s.close_popup()
+        number_of_coins = 3
+        self.assertEqual(number_of_coins, iterations)
+        self.assertIsInstance(iterations, int)
 
     def test_get_links(self):
         #get_links without scrolling only returns first 12 coin links
@@ -74,14 +86,27 @@ class ScraperTestCase(unittest.TestCase):
         self.assertEqual(name, img[1])
 
     def test_get_text_data(self):
+        test_dict = {'CryptoName': ['Bitcoin (BTC)'], 'UUID': ['8d73b5b64315484eb6e8d1075cb0779a'], 'URL': ['https://coinmarketcap.com/currencies/bitcoin/'], 
+                    'CurrentPrice': ['Bitcoin Price £19,520.83'], '24hrLowPrice': ['£18,587.82 /'], '24hrHighPrice': ['£19,694.61'], 
+                    'MarketCap': ['Market Cap £373,614,210,638.43'], 'FullyDilutedMarketCap': ['Fully Diluted Market Cap £410,395,689,827.38'], 
+                    'Volume': ['£23,925,465,965.66'], 'Volume/MarketCap': ['Volume / Market Cap 0.06404'], 'CirculatingSupply': ['Circulating Supply 19,117,887 BTC'], 
+                    'MarketRank': ['Market Rank #1'], 'MarketDominance (%)': ['Market Dominance 40.26%']}
         self.s.driver.get('https://coinmarketcap.com/currencies/bitcoin/')
-        data = self.s.get_text_data()
+        data = self.s.get_text_data_2()
         #data = self.coin_data.get_text_data()
         time.sleep(2)
         id_match = "Bitcoin (BTC)"
         self.assertEqual(id_match, data[1])
         self.assertIsInstance(data[1], str)
 
+    def test_local_save(self):
+        def parse(filename): 
+            try: 
+                with open(filename) as f: return json.load(f) 
+            except ValueError as e: print('invalid json: %s' % e) 
+                return None
+
+    #mock responses, check if file exists, can convert josn to dict to check values(use assertequals)
 
 unittest.main(argv=[''], verbosity=2, exit=False)
 #verbosity denotes detail of pass/fail
