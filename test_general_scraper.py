@@ -78,17 +78,10 @@ class ScraperTestCase(unittest.TestCase):
         self.s.scroll()
         mock_execute_script.assert_called_once()
 
-    # @patch('selenium.webdriver.support.wait.WebDriverWait.until')
-    # @patch('selenium.webdriver.remote.webelement.WebElement.click')
-    # def test_search_bar(self,
-    #                     mock_click_element: Mock,
-    #                     mock_until: Mock):
-        
-    #     self.s.search_bar()
-    #     until_count = mock_until.call_count
-    #     self.assertEqual(until_count, 2)
-    #     click_count = mock_click_element.call_count
-    #     self.assertEqual(click_count, 2)
+    def test_search_bar(self):
+        new_page = self.s.search_bar()
+        self.assertEqual(new_page, "https://coinmarketcap.com/currencies/xrp/")
+    
     
 
 unittest.main(argv=[''], verbosity=2, exit=False)

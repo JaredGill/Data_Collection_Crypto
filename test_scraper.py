@@ -107,7 +107,14 @@ class ScraperTestCase(unittest.TestCase):
             print('invalid json: %s' % e) 
             return None
 
-    
+    # def test_image_save(self):
+    #     try:
+    #         with open('./raw_data/images/BTC_logo.jpeg') as f: 
+    #             return json.load(f) 
+    #     except ValueError as e: 
+    #         print('invalid json: %s' % e) 
+    #         return None
+
 
     #mock responses, check if file exists, can convert josn to dict to check values(use assertequals)
 

@@ -124,7 +124,13 @@ class General_Scraper:
         text_search: str
             The desired text to be searched.
         '''
-        self.close_popup()
+        # try:
+        #     self.close_popup()
+        # except:
+        #     pass
+
+        #use find_elements instead of line 130 to return list to unittest
+        #return current url and test
         try:
             search_bar = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, '//div[@class="zafg3t-1 gaWePq"]')))
             search_bar.click()
@@ -132,14 +138,18 @@ class General_Scraper:
             print('No element located, check xpath')
 
         time.sleep(2)
-        z = self.driver.switch_to.active_element
+        active_element = self.driver.switch_to.active_element
         while True:
             try: 
-                z.send_keys(text_search)
+                active_element.send_keys(text_search)
                 time.sleep(2)
-                z.send_keys(Keys.RETURN)
+                active_element.send_keys(Keys.RETURN)
             except: 
                 break
+        
+        #for unittest check the url of page is equal to expected url after sending keys
+        get_url = self.driver.current_url
+        return get_url
 
 class CoinScraper(General_Scraper):
     '''
