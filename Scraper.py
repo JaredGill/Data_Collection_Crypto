@@ -76,6 +76,7 @@ class General_Scraper:
             WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, popup_xpath)))
             self.click_element(popup_button_xpath)
             time.sleep(1)
+            #find_elements here -> if element no longer exists an empty list will be returned
         except:
             print('Could not close popup. Is it present? Are Xpaths correct?')
 
@@ -382,10 +383,15 @@ class CoinScraper(General_Scraper):
         Makes a.json file for the combined dictionary storing all coins data.
         Also makes an images directory saves each logos image .jpeg
         '''
+
+        data_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/total_data"
+        if not os.path.exists(data_folder_path):
+            os.makedirs(data_folder_path)
+
         current_date = date.today()
         df = self.make_dataframe()
         #try save json to dict of lists#############
-        df.to_json(f'./raw_data/{current_date}_total_data.json')
+        df.to_json(f'./raw_data/total_data/{current_date}_total_data.json')
 
         image_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images"
         if not os.path.exists(image_folder_path):
@@ -422,17 +428,17 @@ def scraper():
     scraper.accept_cookies()
     scraper.change_currency()
     #scraper.search_bar()
-    scraper.search_bar()
+    #scraper.search_bar()
 
-    # scraper.scroll_bottom()
-    # scraper.data_scrape(100)
+    scraper.scroll_bottom()
+    scraper.data_scrape(100)
 
     # # #print(scraper.img_dict)
     # # #print(scraper.coin_data_dict)
     
     # # scraper.make_dataframe()
     
-    # scraper.local_save()
+    scraper.local_save()
     #pprint.pprint(scraper.coin_data_dict)
     exit()
 
