@@ -40,16 +40,11 @@ class ScraperTestCase(unittest.TestCase):
     #     mock_find_element.assert_called_once()
     #     self.assertIsInstance(element_tags, list)
 
-    @patch('selenium.webdriver.support.wait.WebDriverWait.until')
-    @patch('selenium.webdriver.remote.webelement.WebElement.click')
-    def test_close_popup(self,
-                            mock_click_element: Mock,
-                            mock_until: Mock):
+    def test_close_popup(self):
+        test_list = 0
+        empty_list = self.s.close_popup()
+        self.assertEqual(len(empty_list), test_list)
 
-        self.s.close_popup()
-        time.sleep(2)
-        mock_until.assert_called_once()
-        mock_click_element.assert_called_once()
         
     @patch('selenium.webdriver.support.wait.WebDriverWait.until')
     @patch('selenium.webdriver.remote.webelement.WebElement.click')

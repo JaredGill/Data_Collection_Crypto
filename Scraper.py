@@ -1,5 +1,6 @@
 from ast import Str
 from lib2to3.pgen2 import driver
+from posixpath import split
 from selenium import webdriver 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -15,18 +16,20 @@ import json
 import pandas as pd
 from pandasgui import show
 from datetime import date
+from AWS_storage import AWS_Data_Storage 
 import itertools
 import pprint
 
 class General_Scraper: 
     def __init__ (self, URL: str = "https://coinmarketcap.com/"):
+        #self denotes an attribute of the class, so its accessible to every other method of the class
         self.driver = webdriver.Edge()
         self.driver.maximize_window()
         self.driver.get(URL)
         self.delay = 10
 
     #all defs are public
-    def click_element(self, xpath: str):
+    def click_element(self, xpath: str, *args):
         '''
         Locates and clicks a element on the webpage
 
@@ -41,7 +44,7 @@ class General_Scraper:
         except:
             print('Could not click element. Are Xpaths correct?')
 
-    def find_elements_in_container(self, container_xpath: str, element_tag) -> list:
+    def find_elements_in_container(self, container_xpath: str, element_tag, *args) -> list:
         '''
         General method to find elements in a container, then iterate through them
 
@@ -61,7 +64,8 @@ class General_Scraper:
             print('Could not find elements in container. Are Xpaths correct?')
     
     def close_popup(self, popup_xpath: str = '//div[@class="sc-8ukhc-2 iCMWiP"]', 
-                            popup_button_xpath: str = '//div[@class="gv-close"]'):
+                            popup_button_xpath: str = '//div[@class="gv-close"]',
+                            *args):
         '''
         Closes any popup unwanted on webpage by waiting on the element then clicking relative close button through xpaths.
 
@@ -72,15 +76,21 @@ class General_Scraper:
         popup_button_xpath: str
             The xpath for close button on popup
         '''
+        time.sleep(1)
         try:
             WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, popup_xpath)))
             self.click_element(popup_button_xpath)
             time.sleep(1)
-            #find_elements here -> if element no longer exists an empty list will be returned
+            #find_elements here -> if element no longer exists an empty list will be returned   
         except:
             print('Could not close popup. Is it present? Are Xpaths correct?')
+        test_obj = self.driver.find_elements(by=By.XPATH, value=popup_button_xpath)
+        #print(test_obj)
+        return test_obj
 
-    def accept_cookies(self, cookies_xpath: str = '//*[@id="cmc-cookie-policy-banner"]', button_xpath: str = '//*[@class="cmc-cookie-policy-banner__close"]' ):
+    def accept_cookies(self, cookies_xpath: str = '//*[@id="cmc-cookie-policy-banner"]', 
+                            button_xpath: str = '//*[@class="cmc-cookie-policy-banner__close"]',
+                            *args):
         '''
         Waits for the accept cookies element to appear then closes it.
         '''
@@ -92,7 +102,7 @@ class General_Scraper:
             print("Cookies are automatically accepted when browsing coinmarket.")
 
     #maybe change to have 3 letter currency in parameters and pass it in
-    def change_currency(self):
+    def change_currency(self, *args):
         '''
         Opens the Select Currency button and selects British pound(GBP) when element is present.
         '''
@@ -125,10 +135,10 @@ class General_Scraper:
         text_search: str
             The desired text to be searched.
         '''
-        # try:
-        #     self.close_popup()
-        # except:
-        #     pass
+        try:
+            self.close_popup()
+        except:
+            pass
 
         #use find_elements instead of line 130 to return list to unittest
         #return current url and test
@@ -152,7 +162,9 @@ class General_Scraper:
         get_url = self.driver.current_url
         return get_url
 
-class CoinScraper(General_Scraper):
+
+#multiple inheritance from aws storage
+class CoinScraper(General_Scraper, AWS_Data_Storage):
     '''
     A scraper class for the website coinmarketcap to obtain the data values for price, supply, etc. 
     Uses the package selenium to connect and interact with the website.
@@ -200,10 +212,14 @@ class CoinScraper(General_Scraper):
 
     '''
     def __init__ (self, URL: str = "https://coinmarketcap.com/"):
-        super().__init__()
+        #maybe look into kwargs
+        General_Scraper.__init__(self) # or super().__init__()  --> allows for dependency injection
+        AWS_Data_Storage.__init__(self) # or super(General_Scraper, self).__init__()
+        #super().__init__
         self.img_dict = {"ImageName": [], "ImageLink": []}
-        self.coin_data_dict = {'CryptoName': [], 'UUID': [], 'URL': [], 'CurrentPrice': [], '24hrLowPrice': [], '24hrHighPrice': [], 'MarketCap': [], 
-                                'FullyDilutedMarketCap': [], 'Volume': [], 'Volume/MarketCap': [], 'CirculatingSupply': [], 'MarketDominance (%)': []}
+        self.coin_data_dict = {'CryptoName': [], 'ShortName': [], 'UUID': [], 'URL': [], 'CurrentPrice (£)': [], '24hrLowPrice (£)': [], '24hrHighPrice (£)': [], 
+                                'MarketCap (£)': [], 'FullyDilutedMarketCap (£)': [], 'Volume (£)': [], 'Volume/MarketCap': [], 
+                                'CirculatingSupply': [], 'MarketDominance (%)': []}
         self.df_to_dict = {}
 
 
@@ -270,6 +286,7 @@ class CoinScraper(General_Scraper):
         self.img_dict["ImageLink"].append(img_link)
         img_name = img_tag.get_attribute('alt')
         self.img_dict["ImageName"].append(img_name)
+        
         return img_link, img_name
 
 #put link into parameter for testing
@@ -287,8 +304,12 @@ class CoinScraper(General_Scraper):
         '''
 
         title = self.driver.find_element(by=By.XPATH, value='//h2[@class="sc-1q9q90x-0 jCInrl h1"]').text
-        id_tag = title.replace('\n', ' (') + ")"
-        self.coin_data_dict['CryptoName'].append(id_tag)
+        id_tag = title.replace('\n', ' ')
+        # id_tag = title.replace('\n', ' (') + ")"
+        split_name = id_tag.split(' ')
+        #print(split_name)
+        self.coin_data_dict['CryptoName'].append(split_name[0])
+        self.coin_data_dict['ShortName'].append(split_name[1])
 
         time.sleep(1)
         self.scroll()
@@ -308,7 +329,7 @@ class CoinScraper(General_Scraper):
 
         volume_tag = data_list[12]
         vol_mc_tag = data_list[14]
-        self.coin_data_dict['Volume'].append(volume_tag)
+        self.coin_data_dict['Volume (£)'].append(volume_tag)
         self.coin_data_dict['Volume/MarketCap'].append(vol_mc_tag)
 
         #coins such as yearn finance have string for price like 'yearn.finance Price $11,405.31'
@@ -317,13 +338,13 @@ class CoinScraper(General_Scraper):
         price_split = data_list[2].split(' ')
         price_tag = price_split[-1]
         #print(x[2])s
-        self.coin_data_dict['CurrentPrice'].append(price_tag)
+        self.coin_data_dict['CurrentPrice (£)'].append(price_tag)
 
         low_price_tag = data_list[8]
         high_price_tag = data_list[9]
         market_dom_tag = data_list[15]
-        self.coin_data_dict['24hrLowPrice'].append(low_price_tag)
-        self.coin_data_dict['24hrHighPrice'].append(high_price_tag)
+        self.coin_data_dict['24hrLowPrice (£)'].append(low_price_tag)
+        self.coin_data_dict['24hrHighPrice (£)'].append(high_price_tag)
         self.coin_data_dict['MarketDominance (%)'].append(market_dom_tag)
 
         values_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="statsValue"]')
@@ -331,8 +352,8 @@ class CoinScraper(General_Scraper):
             market_cap_tag = values_container[0].text
             fdmc_tag = values_container[1].text
             circ_supply_tag = values_container[4].text
-            self.coin_data_dict['MarketCap'].append(market_cap_tag)
-            self.coin_data_dict['FullyDilutedMarketCap'].append(fdmc_tag)
+            self.coin_data_dict['MarketCap (£)'].append(market_cap_tag)
+            self.coin_data_dict['FullyDilutedMarketCap (£)'].append(fdmc_tag)
             self.coin_data_dict['CirculatingSupply'].append(circ_supply_tag)
         else:
             pass
@@ -340,14 +361,17 @@ class CoinScraper(General_Scraper):
             market_cap_tag = values_container[0].text
             fdmc_tag = values_container[2].text
             circ_supply_tag = values_container[-1].text
-            self.coin_data_dict['MarketCap'].append(market_cap_tag)
-            self.coin_data_dict['FullyDilutedMarketCap'].append(fdmc_tag)
+            self.coin_data_dict['MarketCap (£)'].append(market_cap_tag)
+            self.coin_data_dict['FullyDilutedMarketCap (£)'].append(fdmc_tag)
             self.coin_data_dict['CirculatingSupply'].append(circ_supply_tag)
         else:
             pass
 
         my_uuid = uuid.uuid4().hex
         self.coin_data_dict['UUID'].append(my_uuid)
+
+        ##################
+        #timestamp column
     
     #return the dict intead and test each column
         return id_tag,  my_uuid, volume_tag, vol_mc_tag, price_tag, low_price_tag, high_price_tag, market_dom_tag, market_cap_tag, fdmc_tag, circ_supply_tag
@@ -355,28 +379,30 @@ class CoinScraper(General_Scraper):
 #can test xpath, whether valid or not, can mock find_element
 
    # def make_dataframe(self, dict: dict) -> pd.DataFrame:
-    def make_dataframe(self):
-        df = pd.DataFrame(self.coin_data_dict)
-        # df = df.applymap(lambda s:s.lower() if type(s) == str else s)
+   #class data_clean():
+   #one instance in main class
+    # def make_dataframe(self):
+    #     df = pd.DataFrame(self.coin_data_dict)
+    #     # df = df.applymap(lambda s:s.lower() if type(s) == str else s)
 
-        cols = ['CurrentPrice', '24hrLowPrice', '24hrHighPrice', 'MarketCap', 'FullyDilutedMarketCap', 'Volume', 'Volume/MarketCap', 
-                'CirculatingSupply', 'MarketDominance (%)']
-        df[cols] = df[cols].applymap(lambda s:s.lower() if type(s) == str else s)
-        df[cols] = df[cols].replace({'\£':'', ',': '', '#': '', 'a': '', 'b': '', 'c': '', 'd': '', 'e': '', 'f': '', 'g': '',
-                                        'h': '', 'i': '', 'j': '', 'k': '', 'l': '', 'm': '', 'n': '', 'o': '', 'p': '',
-                                        'q': '', 'r': '', 's': '', 't': '', 'u': '', 'v': '', 'w': '', 'x': '', 'y': '', 'z': '',
-                                        '/': '', '%': '', ' ': '', '"': ''}, regex=True) 
+    #     cols = ['CurrentPrice', '24hrLowPrice', '24hrHighPrice', 'MarketCap', 'FullyDilutedMarketCap', 'Volume', 'Volume/MarketCap', 
+    #             'CirculatingSupply', 'MarketDominance (%)']
+    #     df[cols] = df[cols].applymap(lambda s:s.lower() if type(s) == str else s)
+    #     df[cols] = df[cols].replace({'\£':'', ',': '', '#': '', 'a': '', 'b': '', 'c': '', 'd': '', 'e': '', 'f': '', 'g': '',
+    #                                     'h': '', 'i': '', 'j': '', 'k': '', 'l': '', 'm': '', 'n': '', 'o': '', 'p': '',
+    #                                     'q': '', 'r': '', 's': '', 't': '', 'u': '', 'v': '', 'w': '', 'x': '', 'y': '', 'z': '',
+    #                                     '/': '', '%': '', ' ': '', '"': ''}, regex=True) 
         
-        #cosmos has -- as its fdmc so convert this to NaN
-        df['FullyDilutedMarketCap'] = df['FullyDilutedMarketCap'].replace('--', np.NaN)
+    #     #cosmos has -- as its fdmc so convert this to NaN
+    #     df['FullyDilutedMarketCap'] = df['FullyDilutedMarketCap'].replace('--', np.NaN)
         
-        df[cols] = df[cols].astype(float)
-        show(df)
-        print(df)
-        print(df.dtypes)
-        return df
+    #     df[cols] = df[cols].astype(float)
+    #     show(df)
+    #     print(df)
+    #     print(df.dtypes)
+    #     return df
 
-#make update def to 
+#make raw json first then read into df, clean then convert back
 
     def local_save(self):
         '''
@@ -421,25 +447,44 @@ class CoinScraper(General_Scraper):
             self.get_links()
             scroll_down_y_axis += 2000
 
+
+####################################################TO DO LIST #############################################
+#call everything into scraper for data, saving etc
+#setup rds method
+#file path details method
+# link the data and img dicts, by splitting the name, removing the brackets from (BTC) and making a new column for it
+    #   this new column is equal to the img name column in img dict
+# img dict should be a table in rds
+#have the user decide what to save through arguement parser from cmd line
+    #   so they will decide e.g. 'l' for local save, 'r' for rds save, and 'b' for both or 'n' for neither
+
+    def data_handling(self):
+        data = self.make_dataframe(self.coin_data_dict)
+        clean_data_df = self.clean_dataframe(data)
+        #show(data)
+        image_df = self.make_dataframe(self.img_dict)
+        show(image_df)
+        return clean_data_df, image_df
+
+    #def 
+        self.upload_tabular_data_to_RDS(data)
+        self.upload_tabular_data_to_RDS(image, 'coin_images')
+
+
+
+
 def scraper():
     scraper = CoinScraper()
     time.sleep(2)
     scraper.close_popup()
     scraper.accept_cookies()
     scraper.change_currency()
-    #scraper.search_bar()
-    #scraper.search_bar()
-
     scraper.scroll_bottom()
-    scraper.data_scrape(100)
-
-    # # #print(scraper.img_dict)
-    # # #print(scraper.coin_data_dict)
-    
-    # # scraper.make_dataframe()
-    
-    scraper.local_save()
+    scraper.data_scrape(1)
+    # scraper.make_dataframe()
+    #scraper.local_save()
     #pprint.pprint(scraper.coin_data_dict)
+    print(scraper.mro())
     exit()
 
 
