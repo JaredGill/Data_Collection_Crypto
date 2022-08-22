@@ -4,6 +4,8 @@ from dataclasses import asdict
 from os import getcwd
 import numpy as np
 #from Scraper import CoinScraper
+import argparse
+
 import json
 import urllib.request
 import boto3
@@ -17,17 +19,18 @@ from pandasgui import show
 
 class AWS_Data_Storage():
     
-    #stop inheritance via coinscraper
-    #def __init__(self):
+    def __init__(self):
+        #must define parser here or inheritance will not find the attribute when called - AttributeError: 'CoinScraper' object has no attribute 'arg_par'
+        self.parser = argparse.ArgumentParser()
         #self.s3_client = boto3.client('s3')
         #self.s3_bucket = boto3.bucket
         #self.s3_root_folder = join(dir_path, 'raw_data') if dir_path else 'raw_data'
         #directory path for saving
 
-    def local_save(self, ):
+    def local_save_data(self, df):
         '''
         Makes a.json file for the combined dictionary storing all coins data.
-        Also makes an images directory saves each logos image .jpeg
+
         '''
 
         data_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/total_data"
@@ -38,7 +41,12 @@ class AWS_Data_Storage():
         df = self.make_dataframe()
         #try save json to dict of lists#############
         df.to_json(f'./raw_data/total_data/{current_date}_total_data.json')
+    
+    def local_save_img(self, img_dict: dict):
+        '''
+        Makes an images directory saves each logos image .jpeg
 
+        '''
         image_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images"
         if not os.path.exists(image_folder_path):
             os.makedirs(image_folder_path)
@@ -54,11 +62,28 @@ class AWS_Data_Storage():
 
 
     def make_dataframe(self, scraper_dict: dict):
+        '''
+        Converts a dict from parameter into a df.
+
+        Parameters:
+        ----------
+        scraper_dict: dict
+            Dict to be converted to df
+        '''
         df = pd.DataFrame(scraper_dict)
-        # df = df.applymap(lambda s:s.lower() if type(s) == str else s)
         return df
 
     def clean_dataframe(self, df):
+        '''
+        Cleans the raw scraper data in df by converting all strings to lowercase, 
+        then removing each letter with replace method in selected columns as 'cols', which are converted to floats.
+        Also removes possible no value tuples with NaN.
+
+        Parameters:
+        ----------
+        df: dataframe
+            The dataframe to clean
+        '''
         cols = ['CurrentPrice (£)', '24hrLowPrice (£)', '24hrHighPrice (£)', 'MarketCap (£)', 'FullyDilutedMarketCap (£)', 'Volume (£)', 'Volume/MarketCap', 
                 'CirculatingSupply', 'MarketDominance (%)']
         df[cols] = df[cols].applymap(lambda s:s.lower() if type(s) == str else s)
@@ -74,28 +99,54 @@ class AWS_Data_Storage():
             print("No NaN")
         
         df[cols] = df[cols].astype(float)
-        show(df)
+        #show(df)
         print(df)
         print(df.dtypes)
         return df
 
-    def upload_raw_data_dir_to_s3(dir_path: str = 'C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data', bucket: str = 'aicore-coinbucket'):
-        s3 = boto3.client('s3')
+    def upload_raw_data_dir_to_s3(self, dir_path: str = 'C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data', bucket: str = 'aicore-coinbucket'):
+        '''
+        Obtains all files from a parent directory and uploads them to an s3 bucket if they are not present already.
 
-        # using a path to the directory the os.walk function generates the file names in directory tree by walking up or down.
-        # it gives a 3tuple(dirpath, dirnames, filenames)
-        # root : Prints out directories only from what you specified.
-        # dirs : Prints out sub-directories from root.
-        # files : Prints out all files from root and directories.
-        # Here the files is used to upload all raw data to bucket
-        # str(os.chdir) + ('C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data') - concatenate raw data dir
+        Parameters:
+        ----------
+        dir_path:
+            Path to the parent directory, default set as the raw data directory
+        bucket:
+            Name of the s3 bucket files will upload to
+        '''
+
+        s3_files = []
+        s3_paths = []
+
+        # In order to get all files and paths from a parent directory, a nested loop must be used.
+        # The first loop retrieves all files from root and directories, only from the directory specified in the dir_path parameter.
+        # It then saves all file names to a list
         for root, dirs, files in os.walk(dir_path):
-            for file in files:
-                #provides the file_name as the root path + the file name, bucketname, and object_name as the files existing name)
-                s3.upload_file(os.path.join(root, file), bucket, file)
-        #read in s3 files to a list, then check if filename is already there etc then continue
+            #Use .extend here as .append gives a list of lists [[], ['1INCH_logo.jpeg', 'AAVE_logo.jpeg', etc]
+            s3_files.extend(files)
 
-    def upload_tabular_data_to_RDS(self, input_df, table_name: str = 'total_coin_data'):
+            # The second loop saves the complete path for each file to a list.
+            for file in files:
+                s3_paths.append(os.path.join(root, file))
+
+        s3 = boto3.client('s3')
+        
+        # zip function allows iteration for 2+ lists
+        # As the both lists were saving from the same order in os.walk, all their positions in the list will match
+        for (file, path) in zip(s3_files, s3_paths):
+            s3_results = s3.list_objects_v2(Bucket = bucket, Prefix = file)
+            if 'Contents' in s3_results:
+                #print(path + file)
+                print("Key exists in the bucket.")
+            else:
+                print(path + file)
+                print("Key doesn't exist in the bucket.")
+                #provides the directory of file to upload, bucketname, and object_name as the files existing name)
+                s3.upload_file(path, bucket, file)
+
+
+    def upload_tabular_data_to_RDS(self, input_df, table_name: str = f'{date.today}_data'):
         #pip installed SQLAlchemy
 
         DATABASE_TYPE = 'postgresql'
@@ -111,21 +162,70 @@ class AWS_Data_Storage():
         input_df.to_sql(table_name, engine, if_exists='replace')
         ##uuid and timestamp change everytime scraper is run
 
+    def arg_par(self):
+        ## You could also use
+        ## parser = argparse.ArgumentParser(add_help=True)
+        # argparse is a way of adding positonal or optional arguments to code when run in command line 
+        #self.parser = argparse.ArgumentParser()
+        self.parser.add_argument('--save',
+                            choices = (1, 2, 3, 4, 5),
+                            dest = 'save_options',
+                            default = 5,
+                            help='Choose where to save scraper data: 1 for Local Save, 2 for Local and s3 Bucket save, 3 for RDS df upload, 4 for all, or 5 for none.',
+                            type = int,
+                            nargs = 1
+                            )
+        args = self.parser.parse_args()
+        print('You have chosen %r.' % args.save_options)
+        #args.save_options is a list of 1 value so extract the int
+        self.user_choice = args.save_options
+        #print(type(self.user_choice))
+        return self.user_choice
+    
+    def save_option(self, choice: int):
+        #choice = self.arg_test()
+        if choice == 1:
+            print('1111 - local save')
+            self.local_save_data()
+            self.local_save_img()
+        elif choice == 2:
+            print("2222 - local and s3 bucket save")
+            self.local_save_data()
+            self.local_save_img()
+            self.upload_raw_data_dir_to_s3
+        elif choice == 3:
+            print("3333 - upload to rds")
+            self.upload_tabular_data_to_RDS()
+        elif choice == 4:
+            print("4444 - local save & upload to rds")
+            self.local_save_data()
+            self.local_save_img()
+            self.upload_tabular_data_to_RDS()
+            self.upload_raw_data_dir_to_s3
+        else:
+            print("5555 - no save")
+            pass
 
-    def input_save_options():
-        options_list = ["1", "2", "3"]
-        while True:
-            user_input = input('Choose your save option, input 1 for local save, 2 for RDS save, or 3 for both')
-            if len(user_input) > 1 :
-                print('Please, enter solely 1, 2 or 3')
-            else:
-                pass
-        return user_input
-
-    def data_save_option():
-        pass
 
 
+
+    # def input_save_options():
+    #     options_list = ["1", "2", "3"]
+    #     while True:
+    #         user_input = input('Choose your save option, input 1 for local save, 2 for RDS save, or 3 for both')
+    #         if len(user_input) > 1 :
+    #             print('Please, enter solely 1, 2 or 3')
+    #         else:
+    #             pass
+    #     return user_input
+
+    # def data_save_option():
+    #     pass
+
+# if __name__ == '__main__':
+#     test = AWS_Data_Storage()
+# #     AWS_Data_Storage.upload_raw_data_dir_to_s3()
+#     test.upload_tabular_data_to_RDS()
 
 
 
@@ -137,13 +237,6 @@ class AWS_Data_Storage():
 #os.environ1
 #https://www.youtube.com/watch?v=IolxqkL7cD8
 #make a file a dict with keys for password etc, then read json in init 
-
-if __name__ == '__main__':
-    test = AWS_Data_Storage()
-#     AWS_Data_Storage.upload_raw_data_dir_to_s3()
-    test.upload_tabular_data_to_RDS()
-
-
 
 
     #method for upload, and for local, if 3 do both etc

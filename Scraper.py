@@ -463,15 +463,28 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         clean_data_df = self.clean_dataframe(data)
         #show(data)
         image_df = self.make_dataframe(self.img_dict)
-        show(image_df)
+        #show(image_df)
         return clean_data_df, image_df
 
-    #def 
-        self.upload_tabular_data_to_RDS(data)
-        self.upload_tabular_data_to_RDS(image, 'coin_images')
+    def rds_upload(self):
+        dfs = self.data_handling()
+        coin_df = dfs[0]
+        img_df = dfs[1]
+        show(coin_df)
+        show(img_df)
+        self.upload_tabular_data_to_RDS(coin_df)
+        self.upload_tabular_data_to_RDS(img_df, 'coin_images')
 
 
+    def save_choice(self):
+        save_choice = self.arg_par()
+        self.save_option(save_choice)
 
+    def s3_bucket(self):
+        self.upload_raw_data_dir_to_s3()
+
+    def local_save(self, img_dict: dict):
+        return super().local_save(img_dict)
 
 def scraper():
     scraper = CoinScraper()
@@ -484,7 +497,8 @@ def scraper():
     # scraper.make_dataframe()
     #scraper.local_save()
     #pprint.pprint(scraper.coin_data_dict)
-    print(scraper.mro())
+    scraper.rds_upload()
+    print(CoinScraper.mro())
     exit()
 
 
