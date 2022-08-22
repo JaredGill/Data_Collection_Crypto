@@ -38,8 +38,9 @@ class AWS_Data_Storage():
             os.makedirs(data_folder_path)
 
         current_date = date.today()
-        df = self.make_dataframe()
+        
         #try save json to dict of lists#############
+        #local save will overwrite any existing file for the current day when run for more up-to-date prices
         df.to_json(f'./raw_data/total_data/{current_date}_total_data.json')
     
     def local_save_img(self, img_dict: dict):
@@ -77,7 +78,7 @@ class AWS_Data_Storage():
         '''
         Cleans the raw scraper data in df by converting all strings to lowercase, 
         then removing each letter with replace method in selected columns as 'cols', which are converted to floats.
-        Also removes possible no value tuples with NaN.
+        Also replaces possible no value tuples with NaN.
 
         Parameters:
         ----------
@@ -94,10 +95,10 @@ class AWS_Data_Storage():
         
         #cosmos has -- as its fdmc so convert this to NaN
         try:
-            df['FullyDilutedMarketCap'] = df['FullyDilutedMarketCap'].replace('--', np.NaN)
+            df['FullyDilutedMarketCap (£)'] = df['FullyDilutedMarketCap (£)'].replace('--', np.NaN)
         except:
             print("No NaN")
-        
+        #show(df)
         df[cols] = df[cols].astype(float)
         #show(df)
         print(df)
@@ -146,7 +147,7 @@ class AWS_Data_Storage():
                 s3.upload_file(path, bucket, file)
 
 
-    def upload_tabular_data_to_RDS(self, input_df, table_name: str = f'{date.today}_data'):
+    def upload_tabular_data_to_RDS(self, input_df, table_name: str):
         #pip installed SQLAlchemy
 
         DATABASE_TYPE = 'postgresql'
@@ -159,6 +160,7 @@ class AWS_Data_Storage():
         engine = create_engine(f"{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{ENDPOINT}:{PORT}/{DATABASE}")
         engine.connect()
         #engine = create_engine(f'postgresql+psycopg2://postgres:MarbleArch@coindb.clip2s0923df.eu-west-2.rds.amazonaws.com:5432/coindb')
+        # will update the table if run more than once on the same day 
         input_df.to_sql(table_name, engine, if_exists='replace')
         ##uuid and timestamp change everytime scraper is run
 
@@ -176,58 +178,13 @@ class AWS_Data_Storage():
                             nargs = 1
                             )
         args = self.parser.parse_args()
-        print('You have chosen %r.' % args.save_options)
+        print('Run file with -h to discover more save options. Current selection is %r.' % args.save_options)
         #args.save_options is a list of 1 value so extract the int
-        self.user_choice = args.save_options
+        self.user_choice = args.save_options[0]
         #print(type(self.user_choice))
         return self.user_choice
     
-    def save_option(self, choice: int):
-        #choice = self.arg_test()
-        if choice == 1:
-            print('1111 - local save')
-            self.local_save_data()
-            self.local_save_img()
-        elif choice == 2:
-            print("2222 - local and s3 bucket save")
-            self.local_save_data()
-            self.local_save_img()
-            self.upload_raw_data_dir_to_s3
-        elif choice == 3:
-            print("3333 - upload to rds")
-            self.upload_tabular_data_to_RDS()
-        elif choice == 4:
-            print("4444 - local save & upload to rds")
-            self.local_save_data()
-            self.local_save_img()
-            self.upload_tabular_data_to_RDS()
-            self.upload_raw_data_dir_to_s3
-        else:
-            print("5555 - no save")
-            pass
-
-
-
-
-    # def input_save_options():
-    #     options_list = ["1", "2", "3"]
-    #     while True:
-    #         user_input = input('Choose your save option, input 1 for local save, 2 for RDS save, or 3 for both')
-    #         if len(user_input) > 1 :
-    #             print('Please, enter solely 1, 2 or 3')
-    #         else:
-    #             pass
-    #     return user_input
-
-    # def data_save_option():
-    #     pass
-
-# if __name__ == '__main__':
-#     test = AWS_Data_Storage()
-# #     AWS_Data_Storage.upload_raw_data_dir_to_s3()
-#     test.upload_tabular_data_to_RDS()
-
-
+   
 
 
 

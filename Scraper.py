@@ -21,7 +21,8 @@ import itertools
 import pprint
 
 class General_Scraper: 
-    def __init__ (self, URL: str = "https://coinmarketcap.com/"):
+    def __init__ (self, URL: str = "https://coinmarketcap.com/", *args, **kwargs):
+        super().__init__(*args, **kwargs)
         #self denotes an attribute of the class, so its accessible to every other method of the class
         self.driver = webdriver.Edge()
         self.driver.maximize_window()
@@ -29,7 +30,7 @@ class General_Scraper:
         self.delay = 10
 
     #all defs are public
-    def click_element(self, xpath: str, *args):
+    def click_element(self, xpath: str):
         '''
         Locates and clicks a element on the webpage
 
@@ -44,7 +45,7 @@ class General_Scraper:
         except:
             print('Could not click element. Are Xpaths correct?')
 
-    def find_elements_in_container(self, container_xpath: str, element_tag, *args) -> list:
+    def find_elements_in_container(self, container_xpath: str, element_tag) -> list:
         '''
         General method to find elements in a container, then iterate through them
 
@@ -90,7 +91,7 @@ class General_Scraper:
 
     def accept_cookies(self, cookies_xpath: str = '//*[@id="cmc-cookie-policy-banner"]', 
                             button_xpath: str = '//*[@class="cmc-cookie-policy-banner__close"]',
-                            *args):
+                            ):
         '''
         Waits for the accept cookies element to appear then closes it.
         '''
@@ -102,7 +103,7 @@ class General_Scraper:
             print("Cookies are automatically accepted when browsing coinmarket.")
 
     #maybe change to have 3 letter currency in parameters and pass it in
-    def change_currency(self, *args):
+    def change_currency(self):
         '''
         Opens the Select Currency button and selects British pound(GBP) when element is present.
         '''
@@ -212,10 +213,9 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
 
     '''
     def __init__ (self, URL: str = "https://coinmarketcap.com/"):
-        #maybe look into kwargs
-        General_Scraper.__init__(self) # or super().__init__()  --> allows for dependency injection
-        AWS_Data_Storage.__init__(self) # or super(General_Scraper, self).__init__()
-        #super().__init__
+        # General_Scraper.__init__(self) # or super().__init__()  --> allows for dependency injection
+        # AWS_Data_Storage.__init__(self) # or super(General_Scraper, self).__init__()
+        super().__init__(URL)
         self.img_dict = {"ImageName": [], "ImageLink": []}
         self.coin_data_dict = {'CryptoName': [], 'ShortName': [], 'UUID': [], 'URL': [], 'CurrentPrice (£)': [], '24hrLowPrice (£)': [], '24hrHighPrice (£)': [], 
                                 'MarketCap (£)': [], 'FullyDilutedMarketCap (£)': [], 'Volume (£)': [], 'Volume/MarketCap': [], 
@@ -260,7 +260,7 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         url_counter = 0
         coin_link_list = self.get_links()
         #print(coin_link_list)
-        print(len(coin_link_list))
+        #print(len(coin_link_list))
         while url_counter < coins_to_scrape:
             URL = coin_link_list[url_counter]
             self.driver.get(URL)
@@ -304,13 +304,14 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         '''
 
         title = self.driver.find_element(by=By.XPATH, value='//h2[@class="sc-1q9q90x-0 jCInrl h1"]').text
-        id_tag = title.replace('\n', ' ')
+        id_tag = title.replace('\n', ' (')
         # id_tag = title.replace('\n', ' (') + ")"
-        split_name = id_tag.split(' ')
+        split_name = id_tag.split(' (')
         #print(split_name)
+        
         self.coin_data_dict['CryptoName'].append(split_name[0])
-        self.coin_data_dict['ShortName'].append(split_name[1])
-
+        self.coin_data_dict['ShortName'].append(split_name[-1])
+        
         time.sleep(1)
         self.scroll()
         time.sleep(2)
@@ -373,65 +374,13 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         ##################
         #timestamp column
     
-    #return the dict intead and test each column
+    
+    #cant return the self.coin_data_dict as it is used in other methods 
         return id_tag,  my_uuid, volume_tag, vol_mc_tag, price_tag, low_price_tag, high_price_tag, market_dom_tag, market_cap_tag, fdmc_tag, circ_supply_tag
 
 #can test xpath, whether valid or not, can mock find_element
 
-   # def make_dataframe(self, dict: dict) -> pd.DataFrame:
-   #class data_clean():
-   #one instance in main class
-    # def make_dataframe(self):
-    #     df = pd.DataFrame(self.coin_data_dict)
-    #     # df = df.applymap(lambda s:s.lower() if type(s) == str else s)
-
-    #     cols = ['CurrentPrice', '24hrLowPrice', '24hrHighPrice', 'MarketCap', 'FullyDilutedMarketCap', 'Volume', 'Volume/MarketCap', 
-    #             'CirculatingSupply', 'MarketDominance (%)']
-    #     df[cols] = df[cols].applymap(lambda s:s.lower() if type(s) == str else s)
-    #     df[cols] = df[cols].replace({'\£':'', ',': '', '#': '', 'a': '', 'b': '', 'c': '', 'd': '', 'e': '', 'f': '', 'g': '',
-    #                                     'h': '', 'i': '', 'j': '', 'k': '', 'l': '', 'm': '', 'n': '', 'o': '', 'p': '',
-    #                                     'q': '', 'r': '', 's': '', 't': '', 'u': '', 'v': '', 'w': '', 'x': '', 'y': '', 'z': '',
-    #                                     '/': '', '%': '', ' ': '', '"': ''}, regex=True) 
-        
-    #     #cosmos has -- as its fdmc so convert this to NaN
-    #     df['FullyDilutedMarketCap'] = df['FullyDilutedMarketCap'].replace('--', np.NaN)
-        
-    #     df[cols] = df[cols].astype(float)
-    #     show(df)
-    #     print(df)
-    #     print(df.dtypes)
-    #     return df
-
-#make raw json first then read into df, clean then convert back
-
-    def local_save(self):
-        '''
-        Makes a.json file for the combined dictionary storing all coins data.
-        Also makes an images directory saves each logos image .jpeg
-        '''
-
-        data_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/total_data"
-        if not os.path.exists(data_folder_path):
-            os.makedirs(data_folder_path)
-
-        current_date = date.today()
-        df = self.make_dataframe()
-        #try save json to dict of lists#############
-        df.to_json(f'./raw_data/total_data/{current_date}_total_data.json')
-
-        image_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images"
-        if not os.path.exists(image_folder_path):
-            os.makedirs(image_folder_path)
-        
-        img_name_list = self.img_dict["ImageName"]
-        img_link_list = self.img_dict["ImageLink"]
-
-        # zip function allows iteration for 2+ lists and runs until smallest list ends
-        for (name, link) in zip(img_name_list, img_link_list):
-            if not os.path.exists(f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images/{name}_logo.jpeg"):
-                image_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images/{name}_logo.jpeg"
-                urllib.request.urlretrieve(link, image_path)
-
+    
     def scroll_bottom(self):
         '''
         Scrolls down the page by 2000 then calls get_links() and continues on to scroll for next 20 link elements
@@ -459,32 +408,58 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
     #   so they will decide e.g. 'l' for local save, 'r' for rds save, and 'b' for both or 'n' for neither
 
     def data_handling(self):
-        data = self.make_dataframe(self.coin_data_dict)
-        clean_data_df = self.clean_dataframe(data)
+        data = super().make_dataframe(self.coin_data_dict)
+        clean_data_df = super().clean_dataframe(data)
         #show(data)
-        image_df = self.make_dataframe(self.img_dict)
+        image_df = super().make_dataframe(self.img_dict)
         #show(image_df)
         return clean_data_df, image_df
 
     def rds_upload(self):
+        # set the date.today()to a variable as otherwise there will be an identifier error when naming table:
+        # sqlalchemy.exc.IdentifierError: Identifier '<built-in method today of type object at 0x00007FFD5A970BF0>_data' exceeds maximum length of 63 characters 
+        cdate = date.today()
         dfs = self.data_handling()
         coin_df = dfs[0]
         img_df = dfs[1]
         show(coin_df)
         show(img_df)
-        self.upload_tabular_data_to_RDS(coin_df)
-        self.upload_tabular_data_to_RDS(img_df, 'coin_images')
+        super().upload_tabular_data_to_RDS(coin_df, f'{cdate}_data')
+        super().upload_tabular_data_to_RDS(img_df, 'coin_images')
 
+    def save_option(self, choice: int):
+        '''
+        local_save_data will overwrite any file with the same day when run
+        local_save_img will not save a image jpeg already present
+        upload_raw_data_dir_to_s3() can only be run once a day as it will not update the bucket if rerun
+            - So it is recommended to delete the old save file from s3 bucket for the date before running this 
+        self.rds_upload() will update the rds table with new prices when run
+        '''
+        dfs = self.data_handling()
+        coin_df = dfs[0]
+        if choice == 1:
+            print('1111 - local save')
+            super().local_save_data(coin_df)
+            super().local_save_img(self.img_dict)
+        elif choice == 2:
+            print("2222 - local and s3 bucket save")
+            super().local_save_data(coin_df)
+            super().local_save_img(self.img_dict)
+            super().upload_raw_data_dir_to_s3()
+        elif choice == 3:
+            print("3333 - upload to rds")
+            self.rds_upload()
+        elif choice == 4:
+            print("4444 - local save, s3 bucket & rds upload")
+            super().local_save_data(coin_df)
+            super().local_save_img(self.img_dict)
+            super().upload_raw_data_dir_to_s3()
+        
+            self.rds_upload()
+        else:
+            print("5555 - no save")
+            pass
 
-    def save_choice(self):
-        save_choice = self.arg_par()
-        self.save_option(save_choice)
-
-    def s3_bucket(self):
-        self.upload_raw_data_dir_to_s3()
-
-    def local_save(self, img_dict: dict):
-        return super().local_save(img_dict)
 
 def scraper():
     scraper = CoinScraper()
@@ -494,10 +469,10 @@ def scraper():
     scraper.change_currency()
     scraper.scroll_bottom()
     scraper.data_scrape(1)
-    # scraper.make_dataframe()
+    scraper.data_handling()
     #scraper.local_save()
     #pprint.pprint(scraper.coin_data_dict)
-    scraper.rds_upload()
+    #scraper.rds_upload()
     print(CoinScraper.mro())
     exit()
 

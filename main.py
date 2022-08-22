@@ -18,23 +18,18 @@ if __name__ == '__main__':
     #
     save_choice = scraper.arg_par()
     
-    scraper.s3_bucket()
+    #scraper.s3_bucket()
 
-    # scraper.close_popup()
-    # scraper.accept_cookies()
-    # scraper.change_currency()
-    # #scraper.search_bar()
-    # scraper.scroll_bottom()
-    # scraper.data_scrape(3)
-    # # print(scraper.coin_data_dict)
-    # # print(scraper.img_dict)
-    # # #datadf = scraper.make_dataframe()
-    # # #scraper.local_save()
-    # scraper.data_handling()
-    # #print(scraper.img_dict)
-    # #s3_data.upload_raw_data_dir_to_s3()
-    # #scraper.upload_tabular_data_to_RDS(datadf)
-
+    scraper.close_popup()
+    scraper.accept_cookies()
+    scraper.change_currency()
+    #scraper.search_bar()
+    scraper.scroll_bottom()
+    scraper.data_scrape(100)
+    
+    scraper.data_handling()
+    
+    #pass the save choice in to determine where to save data/images
     scraper.save_option(save_choice)
 
     exit()
