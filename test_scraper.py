@@ -61,6 +61,7 @@ class ScraperTestCase(unittest.TestCase):
         self.assertEqual(first_url, links[0])
         #as top 100 crytpos change daily, last url may fail
         last_url = "https://coinmarketcap.com/currencies/shiba-inu/"
+        #the amount of links scraped can very by 1 or 2 links so assertEqual may fail
         self.assertEqual(last_url, links[11])
         self.assertEqual(length_urls, len(links))
         self.assertIsInstance(links, list)
@@ -85,7 +86,7 @@ class ScraperTestCase(unittest.TestCase):
 
         data = self.cs.get_text_data()
         time.sleep(2)
-        id_match = "Bitcoin (BTC)"
+        id_match = "Bitcoin (BTC"
         self.assertEqual(id_match, data[0])
 
         #set up while loop to test all returns from get_text_data
@@ -97,26 +98,16 @@ class ScraperTestCase(unittest.TestCase):
             counter +=1
             list_counter +=1
 
-
-
-    def test_local_save(self): 
-        try: 
-            with open('./raw_data/2022-08-14_total_data.json') as f: 
-                return json.load(f) 
-        except ValueError as e: 
-            print('invalid json: %s' % e) 
-            return None
-
-    # def test_image_save(self):
-    #     try:
-    #         with open('./raw_data/images/BTC_logo.jpeg') as f: 
-    #             return json.load(f) 
-    #     except ValueError as e: 
-    #         print('invalid json: %s' % e) 
-    #         return None
-
-
-    #mock responses, check if file exists, can convert josn to dict to check values(use assertequals)
+    @patch('Scraper.CoinScraper.clean_dataframe')
+    @patch('Scraper.CoinScraper.make_dataframe')
+    def test_make_coin_df(self,
+                            mock_make_dataframe: Mock,
+                            mock_clean_dataframe: Mock
+                            ):
+        test = self.cs.make_coin_df()
+        mock_make_dataframe.assert_called_once()
+        mock_clean_dataframe.assert_called_once()
+        
 
 unittest.main(argv=[''], verbosity=2, exit=False)
 #verbosity denotes detail of pass/fail

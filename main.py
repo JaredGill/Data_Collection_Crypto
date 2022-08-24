@@ -19,15 +19,16 @@ if __name__ == '__main__':
     save_choice = scraper.arg_par()
     
     #scraper.s3_bucket()
-
+    
     scraper.close_popup()
     scraper.accept_cookies()
     scraper.change_currency()
     #scraper.search_bar()
     scraper.scroll_bottom()
-    scraper.data_scrape(100)
-    
-    scraper.data_handling()
+    scraper.data_scrape(3)
+    #print(scraper.coin_data_dict)
+    scraper.make_coin_df()
+    scraper.make_image_df()
     
     #pass the save choice in to determine where to save data/images
     scraper.save_option(save_choice)

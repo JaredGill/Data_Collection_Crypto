@@ -1,4 +1,5 @@
 from ast import Str
+from email.mime import image
 from lib2to3.pgen2 import driver
 from posixpath import split
 from selenium import webdriver 
@@ -7,6 +8,9 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.edge.options import Options
+from selenium.webdriver import EdgeOptions
+
 import uuid
 import numpy as np
 import time
@@ -23,11 +27,23 @@ import pprint
 class General_Scraper: 
     def __init__ (self, URL: str = "https://coinmarketcap.com/", *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         #self denotes an attribute of the class, so its accessible to every other method of the class
-        self.driver = webdriver.Edge()
-        self.driver.maximize_window()
+        options = EdgeOptions()
+        options.add_argument("headless")
+        #suppresses all warnings that aren't LOG_FATAL
+        options.add_argument("--log-level=2")
+        #set the window size so correct xpaths are present
+        options.add_argument("window-size=1815, 992")
+        self.driver = webdriver.Edge(options = options)
+        #self.driver = webdriver.Edge()
+
+        #this increases the edge window to maximum screen size on monitor, so wont work if headless
+        #self.driver.maximize_window()
+
         self.driver.get(URL)
         self.delay = 10
+        
 
     #all defs are public
     def click_element(self, xpath: str):
@@ -275,7 +291,6 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         
 
     #public
-    #put link into parameter for testing
     def get_image(self):
         '''
         Locates the coin's image logo by container, then returns its src and alt for img link and name respectively
@@ -289,7 +304,6 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         
         return img_link, img_name
 
-#put link into parameter for testing
     def get_text_data(self):
         '''
         Scrapes the data from the coin's specific webpage and appending them to the coin_data dictionary.
@@ -398,34 +412,30 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
 
 
 ####################################################TO DO LIST #############################################
-#call everything into scraper for data, saving etc
-#setup rds method
-#file path details method
-# link the data and img dicts, by splitting the name, removing the brackets from (BTC) and making a new column for it
-    #   this new column is equal to the img name column in img dict
-# img dict should be a table in rds
-#have the user decide what to save through arguement parser from cmd line
-    #   so they will decide e.g. 'l' for local save, 'r' for rds save, and 'b' for both or 'n' for neither
 
-    def data_handling(self):
+
+    def make_coin_df(self):
         data = super().make_dataframe(self.coin_data_dict)
         clean_data_df = super().clean_dataframe(data)
-        #show(data)
+        show(data)
+        return clean_data_df
+    
+    def make_image_df(self):
         image_df = super().make_dataframe(self.img_dict)
-        #show(image_df)
-        return clean_data_df, image_df
+        show(image_df)
+        return image_df
 
     def rds_upload(self):
         # set the date.today()to a variable as otherwise there will be an identifier error when naming table:
         # sqlalchemy.exc.IdentifierError: Identifier '<built-in method today of type object at 0x00007FFD5A970BF0>_data' exceeds maximum length of 63 characters 
         cdate = date.today()
-        dfs = self.data_handling()
-        coin_df = dfs[0]
-        img_df = dfs[1]
+        coin_df = self.make_coin_df()
+        img_df = self.make_image_df()
         show(coin_df)
         show(img_df)
         super().upload_tabular_data_to_RDS(coin_df, f'{cdate}_data')
         super().upload_tabular_data_to_RDS(img_df, 'coin_images')
+        #check if called twice for super method
 
     def save_option(self, choice: int):
         '''
@@ -435,8 +445,7 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
             - So it is recommended to delete the old save file from s3 bucket for the date before running this 
         self.rds_upload() will update the rds table with new prices when run
         '''
-        dfs = self.data_handling()
-        coin_df = dfs[0]
+        coin_df = self.make_coin_df()
         if choice == 1:
             print('1111 - local save')
             super().local_save_data(coin_df)
@@ -454,22 +463,25 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
             super().local_save_data(coin_df)
             super().local_save_img(self.img_dict)
             super().upload_raw_data_dir_to_s3()
-        
             self.rds_upload()
         else:
             print("5555 - no save")
             pass
 
-
+    def w(self):
+        print(self.driver.get_window_size())
+        
 def scraper():
     scraper = CoinScraper()
     time.sleep(2)
+    scraper.w()
     scraper.close_popup()
     scraper.accept_cookies()
     scraper.change_currency()
     scraper.scroll_bottom()
     scraper.data_scrape(1)
-    scraper.data_handling()
+    print(scraper.coin_data_dict)
+    #scraper.data_handling()
     #scraper.local_save()
     #pprint.pprint(scraper.coin_data_dict)
     #scraper.rds_upload()

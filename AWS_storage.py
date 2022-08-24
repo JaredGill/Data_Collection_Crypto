@@ -101,8 +101,8 @@ class AWS_Data_Storage():
         #show(df)
         df[cols] = df[cols].astype(float)
         #show(df)
-        print(df)
-        print(df.dtypes)
+        # print(df)
+        # print(df.dtypes)
         return df
 
     def upload_raw_data_dir_to_s3(self, dir_path: str = 'C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data', bucket: str = 'aicore-coinbucket'):
@@ -123,6 +123,8 @@ class AWS_Data_Storage():
         # In order to get all files and paths from a parent directory, a nested loop must be used.
         # The first loop retrieves all files from root and directories, only from the directory specified in the dir_path parameter.
         # It then saves all file names to a list
+        #[[j for j in range(5)] for i in range(5)]
+        #https://deejaygraham.github.io/2020/01/17/for-loops-to-list-comprehensions/
         for root, dirs, files in os.walk(dir_path):
             #Use .extend here as .append gives a list of lists [[], ['1INCH_logo.jpeg', 'AAVE_logo.jpeg', etc]
             s3_files.extend(files)
@@ -139,12 +141,15 @@ class AWS_Data_Storage():
             s3_results = s3.list_objects_v2(Bucket = bucket, Prefix = file)
             if 'Contents' in s3_results:
                 #print(path + file)
-                print("Key exists in the bucket.")
+                #print("Key exists in the bucket.")
+                continue
             else:
                 print(path + file)
                 print("Key doesn't exist in the bucket.")
                 #provides the directory of file to upload, bucketname, and object_name as the files existing name)
                 s3.upload_file(path, bucket, file)
+        
+        return s3_files, s3_paths
 
 
     def upload_tabular_data_to_RDS(self, input_df, table_name: str):
@@ -164,11 +169,12 @@ class AWS_Data_Storage():
         input_df.to_sql(table_name, engine, if_exists='replace')
         ##uuid and timestamp change everytime scraper is run
 
+        #check creat_engine, connect, if df to sql is called once
+        #integration test, create another rds and see if possible to pull across table
+            # use ifexists, ifreplace etc 
+
     def arg_par(self):
-        ## You could also use
-        ## parser = argparse.ArgumentParser(add_help=True)
         # argparse is a way of adding positonal or optional arguments to code when run in command line 
-        #self.parser = argparse.ArgumentParser()
         self.parser.add_argument('--save',
                             choices = (1, 2, 3, 4, 5),
                             dest = 'save_options',
@@ -179,9 +185,18 @@ class AWS_Data_Storage():
                             )
         args = self.parser.parse_args()
         print('Run file with -h to discover more save options. Current selection is %r.' % args.save_options)
-        #args.save_options is a list of 1 value so extract the int
-        self.user_choice = args.save_options[0]
-        #print(type(self.user_choice))
+
+        #sometimes it saves as a list instead of an int so below is how to retrieve the option either way
+        if isinstance(args.save_options, int):
+            self.user_choice = args.save_options
+            # print(type(self.user_choice))
+            # print('int')
+            # print(self.user_choice)
+        elif isinstance(args.save_options, list):
+            self.user_choice = args.save_options[0]
+            # print(type(self.user_choice))
+            # print('list')
+            # print(self.user_choice)
         return self.user_choice
     
    
@@ -189,7 +204,8 @@ class AWS_Data_Storage():
 
 
 
-
+#pipreqs for requirements.txt generation
+# pipreqs pathtosaveposition
 
 #os.environ1
 #https://www.youtube.com/watch?v=IolxqkL7cD8
