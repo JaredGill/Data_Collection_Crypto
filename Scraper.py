@@ -1,28 +1,18 @@
-from ast import Str
-from email.mime import image
-from lib2to3.pgen2 import driver
-from posixpath import split
+from AWS_storage import AWS_Data_Storage 
+from datetime import date
+from pandasgui import show
 from selenium import webdriver 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.edge.options import Options
 from selenium.webdriver import EdgeOptions
-
-import uuid
+import pandas as pd
 import numpy as np
 import time
-import urllib.request
-import os
-import json
-import pandas as pd
-from pandasgui import show
-from datetime import date
-from AWS_storage import AWS_Data_Storage 
-import itertools
-import pprint
+import uuid
+
 
 class General_Scraper: 
     def __init__ (self, URL: str = "https://coinmarketcap.com/", *args, **kwargs):
@@ -33,6 +23,7 @@ class General_Scraper:
         options.add_argument("headless")
         #suppresses all warnings that aren't LOG_FATAL
         options.add_argument("--log-level=2")
+        
         #set the window size so correct xpaths are present
         options.add_argument("window-size=1815, 992")
         self.driver = webdriver.Edge(options = options)
@@ -92,6 +83,11 @@ class General_Scraper:
             The popup xpath
         popup_button_xpath: str
             The xpath for close button on popup
+        
+        Returns:
+        -------
+        test_obj
+            Object is for unittest. If popup is closed then test_obj will be empty list.
         '''
         time.sleep(1)
         try:
@@ -144,13 +140,18 @@ class General_Scraper:
         except:
             print("Could not scroll to target pixel height.")
 
-    def search_bar(self, text_search: Str = "xrp"):
+    def search_bar(self, text_search: str = "xrp"):
         '''
         Opens the search bar and inputs text via parameter then clicks.
 
         Parameters:
         text_search: str
             The desired text to be searched.
+        
+        Returns:
+        -------
+        get_url
+            For unittest check the url of page is equal to expected url after sending keys
         '''
         try:
             self.close_popup()
@@ -175,7 +176,6 @@ class General_Scraper:
             except: 
                 break
         
-        #for unittest check the url of page is equal to expected url after sending keys
         get_url = self.driver.current_url
         return get_url
 
@@ -245,6 +245,11 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         Locates each unique coin in the main contianer on the homepage by "a" tag, and saves the href as a link.
         The link_list saves all hrefs that have loaded on page as website has dynamic pages.
         The url_list contains all unique hrefs from the link_list 
+
+        Returns: 
+        -------
+        url_list
+            List containing unique urls
         '''
         link_list = []
         url_list = []
@@ -272,6 +277,11 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         ----------
         coins_to_scrape: int
             Amount of crypto coins to be scraped
+
+        Returns:
+        -------
+        url_counter
+            Counter to test against how many urls were scraped through
         '''
         url_counter = 0
         coin_link_list = self.get_links()
@@ -294,6 +304,13 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
     def get_image(self):
         '''
         Locates the coin's image logo by container, then returns its src and alt for img link and name respectively
+
+        Returns:
+        -------
+        img_link
+            Image link to be tested in unittest
+        img_name
+            Image name to be tested in unittest
         '''
 
         img_tag = self.find_elements_in_container('//div[@class="sc-16r8icm-0 gpRPnR nameHeader"]', 'img')
@@ -389,7 +406,7 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         #timestamp column
     
     
-    #cant return the self.coin_data_dict as it is used in other methods 
+        #cant return the self.coin_data_dict as it is used in other methods 
         return id_tag,  my_uuid, volume_tag, vol_mc_tag, price_tag, low_price_tag, high_price_tag, market_dom_tag, market_cap_tag, fdmc_tag, circ_supply_tag
 
 #can test xpath, whether valid or not, can mock find_element
@@ -410,17 +427,29 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
             self.get_links()
             scroll_down_y_axis += 2000
 
-
-####################################################TO DO LIST #############################################
-
-
     def make_coin_df(self):
+        '''
+        Makes a dataframe of total coin data scraped, then cleans it.
+
+        Returns:
+        -------
+        clean_data_df
+            Dataframe with cleaned total scraped coin data 
+        '''
         data = super().make_dataframe(self.coin_data_dict)
         clean_data_df = super().clean_dataframe(data)
         show(data)
         return clean_data_df
     
     def make_image_df(self):
+        '''
+        Makes a dataframe for image name and url in dict
+
+        Returns:
+        -------
+        image_df
+            Dataframe with image name and url
+        '''
         image_df = super().make_dataframe(self.img_dict)
         show(image_df)
         return image_df
@@ -428,22 +457,30 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
     def rds_upload(self):
         # set the date.today()to a variable as otherwise there will be an identifier error when naming table:
         # sqlalchemy.exc.IdentifierError: Identifier '<built-in method today of type object at 0x00007FFD5A970BF0>_data' exceeds maximum length of 63 characters 
-        cdate = date.today()
+        current_date = date.today()
         coin_df = self.make_coin_df()
         img_df = self.make_image_df()
-        show(coin_df)
-        show(img_df)
-        super().upload_tabular_data_to_RDS(coin_df, f'{cdate}_data')
+        # show(coin_df)
+        # show(img_df)
+        super().upload_tabular_data_to_RDS(coin_df, f'{current_date}_data')
         super().upload_tabular_data_to_RDS(img_df, 'coin_images')
         #check if called twice for super method
 
     def save_option(self, choice: int):
         '''
-        local_save_data will overwrite any file with the same day when run
-        local_save_img will not save a image jpeg already present
-        upload_raw_data_dir_to_s3() can only be run once a day as it will not update the bucket if rerun
-            - So it is recommended to delete the old save file from s3 bucket for the date before running this 
-        self.rds_upload() will update the rds table with new prices when run
+        As crypto coin prices change constantly, the save file is named for the day scraper was ran.
+        This is a method to decide how data will be saved:
+            local_save_data will overwrite any file with the same day when run
+            local_save_img will not save a image jpeg already present
+            upload_raw_data_dir_to_s3() can only be run once a day as it will not update the bucket if rerun
+                - So it is recommended to delete the old save file from s3 bucket for the date before running this 
+            self.rds_upload() will update the rds table with new prices when ran
+        
+        Parameters:
+        ----------
+        choice: int
+            The users choice for save options obtained from the arg_par method 
+
         '''
         coin_df = self.make_coin_df()
         if choice == 1:
@@ -468,13 +505,10 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
             print("5555 - no save")
             pass
 
-    def w(self):
-        print(self.driver.get_window_size())
         
 def scraper():
     scraper = CoinScraper()
     time.sleep(2)
-    scraper.w()
     scraper.close_popup()
     scraper.accept_cookies()
     scraper.change_currency()

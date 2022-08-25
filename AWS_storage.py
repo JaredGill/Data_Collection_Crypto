@@ -1,20 +1,12 @@
-from msilib.schema import Class
-from os.path import join
-from dataclasses import asdict
-from os import getcwd
-import numpy as np
-#from Scraper import CoinScraper
-import argparse
-
-import json
-import urllib.request
-import boto3
-import os
-from sqlalchemy import create_engine
-import pandas as pd
 from datetime import date
 from pandasgui import show
-
+from sqlalchemy import create_engine
+import argparse
+import boto3
+import numpy as np
+import os
+import pandas as pd
+import urllib.request
 
 
 class AWS_Data_Storage():
@@ -27,10 +19,14 @@ class AWS_Data_Storage():
         #self.s3_root_folder = join(dir_path, 'raw_data') if dir_path else 'raw_data'
         #directory path for saving
 
-    def local_save_data(self, df):
+    def local_save_data(self, df_for_save):
         '''
         Makes a.json file for the combined dictionary storing all coins data.
 
+        Parameters:
+        ----------
+        df_for_save: dataframe
+            The dataframe to save to json file
         '''
 
         data_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/total_data"
@@ -41,12 +37,16 @@ class AWS_Data_Storage():
         
         #try save json to dict of lists#############
         #local save will overwrite any existing file for the current day when run for more up-to-date prices
-        df.to_json(f'./raw_data/total_data/{current_date}_total_data.json')
+        df_for_save.to_json(f'./raw_data/total_data/{current_date}_total_data.json')
     
     def local_save_img(self, img_dict: dict):
         '''
         Makes an images directory saves each logos image .jpeg
 
+        Parameters:
+        ----------
+        img_dict: dict
+            The image dict to retrieve image name and links to save as jpeg file
         '''
         image_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images"
         if not os.path.exists(image_folder_path):
@@ -61,7 +61,6 @@ class AWS_Data_Storage():
                 image_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images/{name}_logo.jpeg"
                 urllib.request.urlretrieve(link, image_path)
 
-
     def make_dataframe(self, scraper_dict: dict):
         '''
         Converts a dict from parameter into a df.
@@ -70,11 +69,16 @@ class AWS_Data_Storage():
         ----------
         scraper_dict: dict
             Dict to be converted to df
+        
+        Returns:
+        -------
+        df
+            The dataframe created
         '''
         df = pd.DataFrame(scraper_dict)
         return df
 
-    def clean_dataframe(self, df):
+    def clean_dataframe(self, coindf):
         '''
         Cleans the raw scraper data in df by converting all strings to lowercase, 
         then removing each letter with replace method in selected columns as 'cols', which are converted to floats.
@@ -82,30 +86,38 @@ class AWS_Data_Storage():
 
         Parameters:
         ----------
-        df: dataframe
+        coindf: dataframe
             The dataframe to clean
+        
+        Returns:
+        -------
+        coindf
+            The coins dataframe cleaned
         '''
         cols = ['CurrentPrice (£)', '24hrLowPrice (£)', '24hrHighPrice (£)', 'MarketCap (£)', 'FullyDilutedMarketCap (£)', 'Volume (£)', 'Volume/MarketCap', 
                 'CirculatingSupply', 'MarketDominance (%)']
-        df[cols] = df[cols].applymap(lambda s:s.lower() if type(s) == str else s)
-        df[cols] = df[cols].replace({'\£':'', ',': '', '#': '', 'a': '', 'b': '', 'c': '', 'd': '', 'e': '', 'f': '', 'g': '',
+        coindf[cols] = coindf[cols].applymap(lambda s:s.lower() if type(s) == str else s)
+        coindf[cols] = coindf[cols].replace({'\£':'', ',': '', '#': '', 'a': '', 'b': '', 'c': '', 'd': '', 'e': '', 'f': '', 'g': '',
                                         'h': '', 'i': '', 'j': '', 'k': '', 'l': '', 'm': '', 'n': '', 'o': '', 'p': '',
                                         'q': '', 'r': '', 's': '', 't': '', 'u': '', 'v': '', 'w': '', 'x': '', 'y': '', 'z': '',
                                         '/': '', '%': '', ' ': '', '"': ''}, regex=True) 
         
         #cosmos has -- as its fdmc so convert this to NaN
         try:
-            df['FullyDilutedMarketCap (£)'] = df['FullyDilutedMarketCap (£)'].replace('--', np.NaN)
+            coindf['FullyDilutedMarketCap (£)'] = coindf['FullyDilutedMarketCap (£)'].replace('--', np.NaN)
         except:
             print("No NaN")
         #show(df)
-        df[cols] = df[cols].astype(float)
+        coindf[cols] = coindf[cols].astype(float)
         #show(df)
         # print(df)
         # print(df.dtypes)
-        return df
+        return coindf
 
-    def upload_raw_data_dir_to_s3(self, dir_path: str = 'C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data', bucket: str = 'aicore-coinbucket'):
+    def upload_raw_data_dir_to_s3(self, 
+                                dir_path: str = 'C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data', 
+                                bucket: str = 'aicore-coinbucket'
+                                ):
         '''
         Obtains all files from a parent directory and uploads them to an s3 bucket if they are not present already.
 
@@ -115,6 +127,14 @@ class AWS_Data_Storage():
             Path to the parent directory, default set as the raw data directory
         bucket:
             Name of the s3 bucket files will upload to
+
+        Returns:
+        -------
+        s3_files: List
+            Contains the names of images
+        s3_paths: List
+            Containts the paths of images
+
         '''
 
         s3_files = []
@@ -123,8 +143,7 @@ class AWS_Data_Storage():
         # In order to get all files and paths from a parent directory, a nested loop must be used.
         # The first loop retrieves all files from root and directories, only from the directory specified in the dir_path parameter.
         # It then saves all file names to a list
-        #[[j for j in range(5)] for i in range(5)]
-        #https://deejaygraham.github.io/2020/01/17/for-loops-to-list-comprehensions/
+        
         for root, dirs, files in os.walk(dir_path):
             #Use .extend here as .append gives a list of lists [[], ['1INCH_logo.jpeg', 'AAVE_logo.jpeg', etc]
             s3_files.extend(files)
@@ -153,6 +172,15 @@ class AWS_Data_Storage():
 
 
     def upload_tabular_data_to_RDS(self, input_df, table_name: str):
+        '''
+        Uploads input dataframe to AWS RDS with the table name.
+
+        Parameters:
+        input_df: Dataframe
+            The dataframe for upload. Will be either the daily coin data or image data
+        table_name: Str
+            Name of the table in RDS
+        '''
         #pip installed SQLAlchemy
 
         DATABASE_TYPE = 'postgresql'
@@ -174,7 +202,17 @@ class AWS_Data_Storage():
             # use ifexists, ifreplace etc 
 
     def arg_par(self):
-        # argparse is a way of adding positonal or optional arguments to code when run in command line 
+        '''
+        The chosen method to let the user decide on their save choice.
+        argparse is a way of adding positonal or optional arguments to code when run in command line.
+        These arguments have the tag --save, and description as below.
+
+        Returns:
+        -------
+        self.user_choice: int
+            The choice of user to be called on in save_options method
+        '''
+         
         self.parser.add_argument('--save',
                             choices = (1, 2, 3, 4, 5),
                             dest = 'save_options',
@@ -184,7 +222,7 @@ class AWS_Data_Storage():
                             nargs = 1
                             )
         args = self.parser.parse_args()
-        print('Run file with -h to discover more save options. Current selection is %r.' % args.save_options)
+        print('Run file with -h to discover more save options. Default is 5 which means no save. Current selection is %r.' % args.save_options)
 
         #sometimes it saves as a list instead of an int so below is how to retrieve the option either way
         if isinstance(args.save_options, int):
@@ -206,22 +244,11 @@ class AWS_Data_Storage():
 
 #pipreqs for requirements.txt generation
 # pipreqs pathtosaveposition
+# pipreqs C:/Users/jared/AiCore/Data_Collection_Pipeline
+
+
+
 
 #os.environ1
 #https://www.youtube.com/watch?v=IolxqkL7cD8
 #make a file a dict with keys for password etc, then read json in init 
-
-
-    #method for upload, and for local, if 3 do both etc
-
-############################Method for reading saved .json files to the RDS 
-    #Loads the current dates .json file into json object (dict of dicts)
-        # current_date = date.today()
-        # with open(f'./raw_data/total_data/{current_date}_total_data.json', 'r') as f:
-        #     data = json.load(f)
-        #     #print(data)
-        # tab_data = pd.DataFrame(data)
-        # try:
-        #     tab_data.to_sql('total_coin_data', engine, if_exists='replace')
-        # except:
-        #     print("Could not save df")
