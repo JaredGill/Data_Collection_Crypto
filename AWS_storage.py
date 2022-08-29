@@ -1,5 +1,5 @@
 from datetime import date
-from pandasgui import show
+#from pandasgui import show
 from sqlalchemy import create_engine
 import argparse
 import boto3

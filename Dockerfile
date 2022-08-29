@@ -7,7 +7,9 @@ FROM python:3.10.4
 # Open in text editor and crtl + f to input your version and find the correct name
     # E.g. Desired version was 104.0.1293.63, but this was not in list.
     # Looking at "Packages" file it was under 104.0.1293.63-1
-ARG EDGE_VERSION="microsoft-edge-stable=104.0.1293.63-1"
+ARG EDGE_VERSION="microsoft-edge-stable=104.0.1293.70-1"
+
+#https://stackoverflow.com/questions/69770506/webdriverexception-unknown-error-msedge-failed-to-start-was-killed
 
 #Adding trusting keys to apt for repositories, you can download and add them using the following command:
 RUN wget -q -O - https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
@@ -18,7 +20,7 @@ RUN wget -q -O - https://packages.microsoft.com/keys/microsoft.asc | apt-key add
     && apt-get update -qqy \
     #And install microsoft edge:
     && apt-get -qqy install ${EDGE_VERSION} \
-    #
+    
     && rm /etc/apt/sources.list.d/microsoft-edge.list \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
@@ -45,3 +47,6 @@ COPY . .
 RUN pip install -r requirements.txt
 #docker run executecmd
 CMD ["python3", "main.py"]
+
+# To make/rebuild docker image: docker build -t jared22/data_collection_crypto .
+# To run docker image: docker run jared22/data_collection_crypto

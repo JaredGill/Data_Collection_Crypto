@@ -1,6 +1,5 @@
 from AWS_storage import AWS_Data_Storage 
 from datetime import date
-from pandasgui import show
 from selenium import webdriver 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -23,9 +22,10 @@ class General_Scraper:
         options.add_argument("headless")
         #suppresses all warnings that aren't LOG_FATAL
         options.add_argument("--log-level=2")
-        
         #set the window size so correct xpaths are present
         options.add_argument("window-size=1815, 992")
+        #docker couldnt run msedgedriver
+        options.add_argument("--remote-debugging-port=9222")  # this
         self.driver = webdriver.Edge(options = options)
         #self.driver = webdriver.Edge()
 
@@ -299,7 +299,6 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
             url_counter += 1
         return url_counter
         
-
     #public
     def get_image(self):
         '''
@@ -438,7 +437,7 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         '''
         data = super().make_dataframe(self.coin_data_dict)
         clean_data_df = super().clean_dataframe(data)
-        show(data)
+        #show(data)
         return clean_data_df
     
     def make_image_df(self):
@@ -451,7 +450,7 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
             Dataframe with image name and url
         '''
         image_df = super().make_dataframe(self.img_dict)
-        show(image_df)
+        #show(image_df)
         return image_df
 
     def rds_upload(self):
