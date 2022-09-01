@@ -46,7 +46,34 @@ COPY . .
 
 RUN pip install -r requirements.txt
 #docker run executecmd
-CMD ["python3", "main.py"]
+CMD ["python3", "main.py", "--save", "4"]
 
 # To make/rebuild docker image: docker build -t jared22/data_collection_crypto .
 # To run docker image: docker run jared22/data_collection_crypto
+
+# example docker run
+# docker run -it -d --name test_scraper jared22/data_collection_crypto
+# -it       : interactive 
+# -d        : detached
+# --name    : name of the container instance (test_scraper)
+# [image]   : docker image (jared22/data_collection_crypto)
+# other useful commands
+# docker ps   : list all active containers
+# docker ps -a  : list all containers
+# docker container prune    : remove all stopped containers  
+
+# to check container logs use: docker logs <container-id>
+
+#when connected to EC2 ssh use: git clone url 
+#to pull all the necessary files over
+
+
+#to push to dockerhub first tag image with:
+#docker tag imagename reponame
+#docker tag jared22/data_collection_crypto jared22/crypto_scraper_repo
+#Then use: docker push jared22/crypto_scraper_repo
+
+
+#copy aws creds into docker folder (aws cli not to be run in docker)
+#save aws creds as an environment variable
+#when building new image pass creds into bash profile

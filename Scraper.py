@@ -19,13 +19,14 @@ class General_Scraper:
 
         #self denotes an attribute of the class, so its accessible to every other method of the class
         options = EdgeOptions()
-        options.add_argument("headless")
+        options.add_argument("--headless")
         #suppresses all warnings that aren't LOG_FATAL
         options.add_argument("--log-level=2")
         #set the window size so correct xpaths are present
         options.add_argument("window-size=1815, 992")
-        #docker couldnt run msedgedriver
-        options.add_argument("--remote-debugging-port=9222")  # this
+
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
         self.driver = webdriver.Edge(options = options)
         #self.driver = webdriver.Edge()
 
@@ -482,6 +483,7 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
 
         '''
         coin_df = self.make_coin_df()
+        
         if choice == 1:
             print('1111 - local save')
             super().local_save_data(coin_df)

@@ -3,6 +3,7 @@ from datetime import date
 from sqlalchemy import create_engine
 import argparse
 import boto3
+import boto3.session
 import numpy as np
 import os
 import pandas as pd
@@ -28,16 +29,18 @@ class AWS_Data_Storage():
         df_for_save: dataframe
             The dataframe to save to json file
         '''
-
+        print("222222222222222222222222222222222222222222222222222222222222222222222")
         data_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/total_data"
         if not os.path.exists(data_folder_path):
             os.makedirs(data_folder_path)
 
         current_date = date.today()
-        
+        print(current_date)
         #try save json to dict of lists#############
         #local save will overwrite any existing file for the current day when run for more up-to-date prices
-        df_for_save.to_json(f'./raw_data/total_data/{current_date}_total_data.json')
+        
+        df_for_save.to_json(f'C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/total_data/{current_date}_total_data.json')
+       
     
     def local_save_img(self, img_dict: dict):
         '''
@@ -48,6 +51,7 @@ class AWS_Data_Storage():
         img_dict: dict
             The image dict to retrieve image name and links to save as jpeg file
         '''
+        #Use the full path as when running in docker or EC2 there will be different directories
         image_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images"
         if not os.path.exists(image_folder_path):
             os.makedirs(image_folder_path)
@@ -136,6 +140,17 @@ class AWS_Data_Storage():
             Containts the paths of images
 
         '''
+        #Below is specific for Docker, the environ vars in local is different
+        AWS_SECRET_KEY = os.environ.get('AWS_SECRET_KEY') 
+        AWS_ACCESS_KEY = os.environ.get('AWS_ACCESS_KEY')
+        AWS_REGION_NAME = "eu-west-2"
+        
+        #Use Below if running locally not on docker or ec2
+        # AWS_SECRET_KEY = os.environ.get('AWS_Secret_Access_Key') 
+        # AWS_ACCESS_KEY = os.environ.get('AWS_Access_Key')
+
+        print(AWS_SECRET_KEY)
+        print(AWS_ACCESS_KEY)
 
         s3_files = []
         s3_paths = []
@@ -152,8 +167,20 @@ class AWS_Data_Storage():
             for file in files:
                 s3_paths.append(os.path.join(root, file))
 
-        s3 = boto3.client('s3')
-        
+        session = boto3.Session( 
+        aws_access_key_id=AWS_ACCESS_KEY, 
+        aws_secret_access_key=AWS_SECRET_KEY,
+        region_name=AWS_REGION_NAME)
+
+        s3 = session.client('s3')
+        # print(os.listdir(dir_path))
+        # print(os.listdir('C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/total_data'))
+        # print(os.listdir('C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images'))
+        # print("-----------------------------------------------")
+        # print(s3_files)
+        # print(s3_paths)
+#################################################################################################################################
+
         # zip function allows iteration for 2+ lists
         # As the both lists were saving from the same order in os.walk, all their positions in the list will match
         for (file, path) in zip(s3_files, s3_paths):
@@ -163,7 +190,7 @@ class AWS_Data_Storage():
                 #print("Key exists in the bucket.")
                 continue
             else:
-                print(path + file)
+                print(path)
                 print("Key doesn't exist in the bucket.")
                 #provides the directory of file to upload, bucketname, and object_name as the files existing name)
                 s3.upload_file(path, bucket, file)
