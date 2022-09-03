@@ -15,6 +15,7 @@ import uuid
 
 class General_Scraper: 
     def __init__ (self, URL: str = "https://coinmarketcap.com/", *args, **kwargs):
+        #args and kwargs let the class inherit any attributes to pass on to child class
         super().__init__(*args, **kwargs)
 
         #self denotes an attribute of the class, so its accessible to every other method of the class
@@ -23,8 +24,8 @@ class General_Scraper:
         #suppresses all warnings that aren't LOG_FATAL
         options.add_argument("--log-level=2")
         #set the window size so correct xpaths are present
-        options.add_argument("window-size=1815, 992")
-
+        options.add_argument("--window-size=1815, 992")
+        options.add_argument("--start-maximized")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         self.driver = webdriver.Edge(options = options)
@@ -232,6 +233,7 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
     def __init__ (self, URL: str = "https://coinmarketcap.com/"):
         # General_Scraper.__init__(self) # or super().__init__()  --> allows for dependency injection
         # AWS_Data_Storage.__init__(self) # or super(General_Scraper, self).__init__()
+        #super requires arguments(URL) as their part of parent classes constructor
         super().__init__(URL)
         self.img_dict = {"ImageName": [], "ImageLink": []}
         self.coin_data_dict = {'CryptoName': [], 'ShortName': [], 'UUID': [], 'URL': [], 'CurrentPrice (£)': [], '24hrLowPrice (£)': [], '24hrHighPrice (£)': [], 
@@ -508,14 +510,15 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
 
         
 def scraper():
-    scraper = CoinScraper()
-    time.sleep(2)
-    scraper.close_popup()
-    scraper.accept_cookies()
-    scraper.change_currency()
-    scraper.scroll_bottom()
-    scraper.data_scrape(1)
-    print(scraper.coin_data_dict)
+    # scraper = CoinScraper()
+    # time.sleep(2)
+    # scraper.close_popup()
+    # scraper.accept_cookies()
+    # scraper.change_currency()
+    # scraper.scroll_bottom()
+    # scraper.data_scrape(1)
+    # print(scraper.coin_data_dict)
+
     #scraper.data_handling()
     #scraper.local_save()
     #pprint.pprint(scraper.coin_data_dict)
