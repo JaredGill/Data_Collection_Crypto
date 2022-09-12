@@ -83,7 +83,7 @@ values_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="s
 
 pip3 freeze > requirements.txt was used to produce requirements.txt for docker
 
-##Inheritance
+## Inheritance
 The structure of the project was one child class (CoinScraper) inherits from two parent classes(General_Scraper and AWS_Data_Storage). This required several stapes:
 - The method resolution order was found with cmd
 ```python 
@@ -94,7 +94,7 @@ The structure of the project was one child class (CoinScraper) inherits from two
 - So both the left hand side, and middle class will have a super().__init__() in their __init__ method.
         - The General_Scraper class will have super().__init__(*args, **kwargs) to inherit and pass any arguements
     
-##Environmental Variables
+## Environmental Variables
 - Environmental variables were used to handle senstitive details for connecting to AWS RDS and S3.
 - For the local windows machine this was done by searching and clicking "Edit the systems Environmental Variables".
         -Then selected the "Environmental variables option, and adding a new variable for AWS_Access_Key and AWS_Secret_Access_key
