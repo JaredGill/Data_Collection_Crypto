@@ -103,3 +103,21 @@ The structure of the project was one child class (CoinScraper) inherits from two
 - These were called in the python script using the os.environ.get() function
 - To pass these in the script when running the docker image they were called individually in the docker run line:
         - sudo docker run -it -e AWS_SECRET_KEY=$AWS_SECRET_KEY -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY --name github_example jared22/crypto_scraper_repo
+     
+## Creating a Node Exporter
+- Navigated to /etc/systemd/system and created a node_exporter.service with the following contents:
+```service
+[Unit]
+Description=Node Exporter
+After=network.target
+
+[Service]
+User=ubuntu
+Type=simple
+ExecStart=/home/ubuntu/node_exporter-1.1.2.linux-amd64/node_exporter (path to node exporter in EC2)
+
+[Install]
+WantedBy=multi-user.target
+```
+- Then started the node with sudo systemctl start node_exporter 
+- Checked its status with sudo systemctl status node_exporter
