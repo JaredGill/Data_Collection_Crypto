@@ -121,3 +121,10 @@ WantedBy=multi-user.target
 ```
 - Then started the node with sudo systemctl start node_exporter 
 - Checked its status with sudo systemctl status node_exporter
+
+## Grafana
+- Grafana was used to observe and monitor the metrics of the EC2 instance and the docker containers. 
+- Initially a docker.daemon.json file for docker metrics and sudo nano /etc/systemd/system/node_exporter.service to create a node exporter for the EC2.
+- This allowed various metrics to be observed such as:
+![image](https://user-images.githubusercontent.com/108297203/190483538-dd53e1e9-7e03-4fe8-aa22-25d538108077.png)
+
