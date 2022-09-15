@@ -128,3 +128,8 @@ WantedBy=multi-user.target
 - This allowed various metrics to be observed such as:
 ![image](https://user-images.githubusercontent.com/108297203/190483538-dd53e1e9-7e03-4fe8-aa22-25d538108077.png)
 
+- Due to the Ec2 being the free tier version, and running the docker exporter and node exporter constantly in the background, when the docker container was run the EC2 went down as seen in the follwoing:
+![image](https://user-images.githubusercontent.com/108297203/190494205-84036b83-8c1d-40d2-ad9f-99c045376c57.png)
+
+- So the node exporter was stopped to allow for docker containers to run on EC2. 
+
