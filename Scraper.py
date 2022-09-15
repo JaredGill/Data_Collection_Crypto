@@ -314,7 +314,7 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         img_name
             Image name to be tested in unittest
         '''
-
+        #webdriverwait here
         img_tag = self.find_elements_in_container('//div[@class="sc-16r8icm-0 gpRPnR nameHeader"]', 'img')
         img_link = img_tag.get_attribute('src')
         self.img_dict["ImageLink"].append(img_link)
@@ -338,9 +338,7 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
 
         title = self.driver.find_element(by=By.XPATH, value='//h2[@class="sc-1q9q90x-0 jCInrl h1"]').text
         id_tag = title.replace('\n', ' (')
-        # id_tag = title.replace('\n', ' (') + ")"
         split_name = id_tag.split(' (')
-        #print(split_name)
         
         self.coin_data_dict['CryptoName'].append(split_name[0])
         self.coin_data_dict['ShortName'].append(split_name[-1])
@@ -348,16 +346,30 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         time.sleep(1)
         self.scroll()
         time.sleep(2)
-        show_more_button = self.driver.find_elements(by=By.XPATH, value='//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 iutcov"]//div[@class="sc-16r8icm-0 nds9rn-0 dAxhCK"]')
+        # show_more_button = self.driver.find_elements(by=By.XPATH, value='//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 iutcov"]//div[@class="sc-16r8icm-0 nds9rn-0 dAxhCK"]')
 
-        for button in show_more_button:
-            sh = button.find_element(by=By.XPATH, value='button')
-            sh.click()
-
+        # for button in show_more_button:
+        #     sh = button.find_element(by=By.XPATH, value='button')
+        #     sh.click()
         try:
-            data_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 iutcov"]//div[@class="sc-16r8icm-0 nds9rn-0 dAxhCK"]')
+            show_more_button = self.driver.find_element(by=By.XPATH, value='//div[@class="sc-16r8icm-0 sc-19zk94m-1 gRSJaB"]//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 hgKnTV"]//div[@class="sc-16r8icm-0 nds9rn-0 cQtSIv"]//button[@class="x0o17e-0 dDXPcp"]')
+            show_more_button.click()
+        except:
+            print("Current page has alt xpaths")
+        
+        try:
+            show_more_button_alt = self.driver.find_element(by=By.XPATH, value='//div[@class="sc-16r8icm-0 sc-19zk94m-1 eToEXD"]//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 hgKnTV"]//div[@class="sc-16r8icm-0 nds9rn-0 cQtSIv"]//button[@class="x0o17e-0 dDXPcp"]')
+            show_more_button_alt.click()
+        except:
+            #print("Current page has normal xpaths")
+            pass
+
+        time.sleep(1)
+        try:
+            data_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 iutcov"]//div[@class="sc-16r8icm-0 nds9rn-0 cQtSIv"]')
         except TimeoutException:
             print("fail")
+
 
         data_list = data_container[0].text.split('\n')
 
@@ -371,7 +383,6 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         #split the full string by spaces then only append the position of the price
         price_split = data_list[2].split(' ')
         price_tag = price_split[-1]
-        #print(x[2])s
         self.coin_data_dict['CurrentPrice (£)'].append(price_tag)
 
         low_price_tag = data_list[8]

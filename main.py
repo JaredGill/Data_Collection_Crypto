@@ -7,14 +7,8 @@ if __name__ == '__main__':
     
     scraper = CoinScraper()
     
-    time.sleep(2)
-    # AWS_SECRET_KEY = os.environ.get('AWS_Secret_Access_Key') 
-    # AWS_ACCESS_KEY = os.environ.get('AWS_Access_Key')
-    # AWS_REGION_NAME = "eu-west-2"
+    time.sleep(1)
 
-    # print(AWS_ACCESS_KEY)
-    # print(AWS_REGION_NAME)
-    # print(AWS_SECRET_KEY)
     save_choice = scraper.arg_par()
     
     
@@ -27,6 +21,7 @@ if __name__ == '__main__':
     scraper.make_image_df()
     print(scraper.make_coin_df())
     print(scraper.make_image_df())
+    #print(CoinScraper.mro())
     
     #pass the save choice in to determine where to save data/images
     scraper.save_option(save_choice)

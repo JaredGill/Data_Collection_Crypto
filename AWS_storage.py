@@ -35,7 +35,6 @@ class AWS_Data_Storage():
             os.makedirs(data_folder_path)
 
         current_date = date.today()
-        print(current_date)
         #try save json to dict of lists#############
         #local save will overwrite any existing file for the current day when run for more up-to-date prices
         
@@ -141,13 +140,13 @@ class AWS_Data_Storage():
 
         '''
         #Below is specific for Docker, the environ vars in local is different
-        AWS_SECRET_KEY = os.environ.get('AWS_SECRET_KEY') 
-        AWS_ACCESS_KEY = os.environ.get('AWS_ACCESS_KEY')
+        # AWS_SECRET_KEY = os.environ.get('AWS_SECRET_KEY') 
+        # AWS_ACCESS_KEY = os.environ.get('AWS_ACCESS_KEY')
         AWS_REGION_NAME = "eu-west-2"
         
         #Use Below if running locally not on docker or ec2
-        # AWS_SECRET_KEY = os.environ.get('AWS_Secret_Access_Key') 
-        # AWS_ACCESS_KEY = os.environ.get('AWS_Access_Key')
+        AWS_SECRET_KEY = os.environ.get('AWS_Secret_Access_Key') 
+        AWS_ACCESS_KEY = os.environ.get('AWS_Access_Key')
 
         print(AWS_SECRET_KEY)
         print(AWS_ACCESS_KEY)
