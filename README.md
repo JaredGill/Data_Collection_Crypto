@@ -82,3 +82,54 @@ values_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="s
 - In addition a universally unique ID was generated using the UUID4 package.
 
 pip3 freeze > requirements.txt was used to produce requirements.txt for docker
+
+## Inheritance
+The structure of the project was one child class (CoinScraper) inherits from two parent classes(General_Scraper and AWS_Data_Storage). This required several stapes:
+- The method resolution order was found with cmd
+```python 
+        print(CoinScraper.mro())
+```
+- Which gave [<class 'Scraper.CoinScraper'>, <class 'Scraper.General_Scraper'>, <class 'AWS_storage.AWS_Data_Storage'>, <class 'object'>]
+- The class on the left inherits from the previous two, similarly the class in the middle must inherit any attributes to be passed on.
+- So both the left hand side, and middle class will have a super().__init__() in their __init__ method.
+        - The General_Scraper class will have super().__init__(*args, **kwargs) to inherit and pass any arguements
+    
+## Environmental Variables
+- Environmental variables were used to handle senstitive details for connecting to AWS RDS and S3.
+- For the local windows machine this was done by searching and clicking "Edit the systems Environmental Variables".
+        -Then selected the "Environmental variables option, and adding a new variable for AWS_Access_Key and AWS_Secret_Access_key
+- For the EC2 Linux machine they were edited into the bottom of the bashrc file.
+        - E.g. export AWS_ACCESS_KEY='example'
+- These were called in the python script using the os.environ.get() function
+- To pass these in the script when running the docker image they were called individually in the docker run line:
+        - sudo docker run -it -e AWS_SECRET_KEY=$AWS_SECRET_KEY -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY --name github_example jared22/crypto_scraper_repo
+     
+## Creating a Node Exporter
+- Navigated to /etc/systemd/system and created a node_exporter.service with the following contents:
+```service
+[Unit]
+Description=Node Exporter
+After=network.target
+
+[Service]
+User=ubuntu
+Type=simple
+ExecStart=/home/ubuntu/node_exporter-1.1.2.linux-amd64/node_exporter (path to node exporter in EC2)
+
+[Install]
+WantedBy=multi-user.target
+```
+- Then started the node with sudo systemctl start node_exporter 
+- Checked its status with sudo systemctl status node_exporter
+
+## Grafana
+- Grafana was used to observe and monitor the metrics of the EC2 instance and the docker containers. 
+- Initially a docker.daemon.json file for docker metrics and sudo nano /etc/systemd/system/node_exporter.service to create a node exporter for the EC2.
+- This allowed various metrics to be observed such as:
+![image](https://user-images.githubusercontent.com/108297203/190483538-dd53e1e9-7e03-4fe8-aa22-25d538108077.png)
+
+- Due to the Ec2 being the free tier version, and running the docker exporter and node exporter constantly in the background, when the docker container was run the EC2 went down as seen in the follwoing:
+![image](https://user-images.githubusercontent.com/108297203/190494205-84036b83-8c1d-40d2-ad9f-99c045376c57.png)
+
+- So the node exporter was stopped to allow for docker containers to run on EC2. 
+
