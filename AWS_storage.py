@@ -1,25 +1,44 @@
 from datetime import date
-#from pandasgui import show
 from sqlalchemy import create_engine
 import argparse
 import boto3
 import boto3.session
 import numpy as np
-import os
 import pandas as pd
+import os
 import urllib.request
 
 
 class AWS_Data_Storage():
-    
+    '''
+    This class is for handling and cleaning data, saving locally, and uploading to AWS RDS and S3 Bucket.
+
+    Attributes:
+    ----------
+    parser: module
+        Calls argparse for the creation and handling of an additional arguement in terminal.
+
+    Methods:
+    -------
+    local_save_data()
+        Saves raw data in local storage
+    local_save_img()
+        Saves coin image in local storage
+    make_dataframe()
+        Makes a df from input dict
+    clean_dataframe()
+        Cleans raw data from input dict
+    upload_raw_data_dir_to_s3()
+        Uploads files from a local directory to AWS S3 Bucket
+    upload_tabular_data_to_RDS()
+        Uploads input df to AWS RDS
+    arg_par()
+        Creates an additional arguement for terminal when running the file for save options.
+    '''
     def __init__(self):
         #must define parser here or inheritance will not find the attribute when called - AttributeError: 'CoinScraper' object has no attribute 'arg_par'
         self.parser = argparse.ArgumentParser()
-        #self.s3_client = boto3.client('s3')
-        #self.s3_bucket = boto3.bucket
-        #self.s3_root_folder = join(dir_path, 'raw_data') if dir_path else 'raw_data'
-        #directory path for saving
-
+        
     def local_save_data(self, df_for_save):
         '''
         Makes a.json file for the combined dictionary storing all coins data.
@@ -35,12 +54,9 @@ class AWS_Data_Storage():
             os.makedirs(data_folder_path)
 
         current_date = date.today()
-        #try save json to dict of lists#############
-        #local save will overwrite any existing file for the current day when run for more up-to-date prices
         
         df_for_save.to_json(f'C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/total_data/{current_date}_total_data.json')
-       
-    
+         
     def local_save_img(self, img_dict: dict):
         '''
         Makes an images directory saves each logos image .jpeg
@@ -105,14 +121,13 @@ class AWS_Data_Storage():
                                         'q': '', 'r': '', 's': '', 't': '', 'u': '', 'v': '', 'w': '', 'x': '', 'y': '', 'z': '',
                                         '/': '', '%': '', ' ': '', '"': ''}, regex=True) 
         
-        #cosmos has -- as its fdmc so convert this to NaN
+        # The coin cosmos has -- as its fdmc so convert this to NaN.
         try:
             coindf['FullyDilutedMarketCap (£)'] = coindf['FullyDilutedMarketCap (£)'].replace('--', np.NaN)
         except:
             print("No NaN")
-        #show(df)
+
         coindf[cols] = coindf[cols].astype(float)
-        #show(df)
         # print(df)
         # print(df.dtypes)
         return coindf
@@ -123,6 +138,7 @@ class AWS_Data_Storage():
                                 ):
         '''
         Obtains all files from a parent directory and uploads them to an s3 bucket if they are not present already.
+        Loads environment variables for the AWS access key and secret key.
 
         Parameters:
         ----------
@@ -140,13 +156,13 @@ class AWS_Data_Storage():
 
         '''
         #Below is specific for Docker, the environ vars in local is different
-        # AWS_SECRET_KEY = os.environ.get('AWS_SECRET_KEY') 
-        # AWS_ACCESS_KEY = os.environ.get('AWS_ACCESS_KEY')
+        AWS_SECRET_KEY = os.environ.get('AWS_SECRET_KEY') 
+        AWS_ACCESS_KEY = os.environ.get('AWS_ACCESS_KEY')
         AWS_REGION_NAME = "eu-west-2"
         
         #Use Below if running locally not on docker or ec2
-        AWS_SECRET_KEY = os.environ.get('AWS_Secret_Access_Key') 
-        AWS_ACCESS_KEY = os.environ.get('AWS_Access_Key')
+        # AWS_SECRET_KEY = os.environ.get('AWS_Secret_Access_Key') 
+        # AWS_ACCESS_KEY = os.environ.get('AWS_Access_Key')
 
         print(AWS_SECRET_KEY)
         print(AWS_ACCESS_KEY)
@@ -157,7 +173,6 @@ class AWS_Data_Storage():
         # In order to get all files and paths from a parent directory, a nested loop must be used.
         # The first loop retrieves all files from root and directories, only from the directory specified in the dir_path parameter.
         # It then saves all file names to a list
-        
         for root, dirs, files in os.walk(dir_path):
             #Use .extend here as .append gives a list of lists [[], ['1INCH_logo.jpeg', 'AAVE_logo.jpeg', etc]
             s3_files.extend(files)
@@ -172,13 +187,6 @@ class AWS_Data_Storage():
         region_name=AWS_REGION_NAME)
 
         s3 = session.client('s3')
-        # print(os.listdir(dir_path))
-        # print(os.listdir('C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/total_data'))
-        # print(os.listdir('C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images'))
-        # print("-----------------------------------------------")
-        # print(s3_files)
-        # print(s3_paths)
-#################################################################################################################################
 
         # zip function allows iteration for 2+ lists
         # As the both lists were saving from the same order in os.walk, all their positions in the list will match
@@ -196,7 +204,6 @@ class AWS_Data_Storage():
         
         return s3_files, s3_paths
 
-
     def upload_tabular_data_to_RDS(self, input_df, table_name: str):
         '''
         Uploads input dataframe to AWS RDS with the table name.
@@ -207,8 +214,6 @@ class AWS_Data_Storage():
         table_name: Str
             Name of the table in RDS
         '''
-        #pip installed SQLAlchemy
-
         DATABASE_TYPE = 'postgresql'
         DBAPI = 'psycopg2'
         ENDPOINT = 'coindb.clip2s0923df.eu-west-2.rds.amazonaws.com'
@@ -217,11 +222,8 @@ class AWS_Data_Storage():
         PORT = 5432
         DATABASE = 'postgres'
         engine = create_engine(f"{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{ENDPOINT}:{PORT}/{DATABASE}")
-        engine.connect()
-        #engine = create_engine(f'postgresql+psycopg2://postgres:MarbleArch@coindb.clip2s0923df.eu-west-2.rds.amazonaws.com:5432/coindb')
-        # will update the table if run more than once on the same day 
+        engine.connect() 
         input_df.to_sql(table_name, engine, if_exists='replace')
-        ##uuid and timestamp change everytime scraper is run
 
         #check creat_engine, connect, if df to sql is called once
         #integration test, create another rds and see if possible to pull across table
@@ -262,17 +264,11 @@ class AWS_Data_Storage():
             # print('list')
             # print(self.user_choice)
         return self.user_choice
-    
-   
-
-
 
 
 #pipreqs for requirements.txt generation
 # pipreqs pathtosaveposition
 # pipreqs C:/Users/jared/AiCore/Data_Collection_Pipeline
-
-
 
 
 #os.environ1

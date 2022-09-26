@@ -14,6 +14,44 @@ import uuid
 
 
 class General_Scraper: 
+    '''
+    A general scraper class with methods that can be adapted and used for non-specific webpages.
+    This class is one of two parent classes to the specific child CoinScraper class.
+    In matters of inheritance it stands between the other parent class (AWS_Data_Storage) in the method resolution order.
+    So this class had to inherit attributes to pass to the child class, hence the *args, and **kwargs
+
+    Parameters:
+    ----------
+    URL: str
+        The chosen websites url
+    
+    Attributes:
+    ----------
+    options: module
+        Calls the class for managing specific options for selenium webdriver
+    driver: module
+        Calls the webdriver module to open a microsoft edge window
+    delay: int
+        Amount of time for the method webdriverwait to wait for xpaths to be present/load
+    
+    Methods:
+    -------
+    click_element()
+        Finds and clicks a element 
+    find_elements_in_container()
+        Finds all elements in a given container and iterates through them
+    close_popup()
+        Closes a popup via specific xpaths
+    accept_cookies()
+        Closes cookies message
+    change_currency()
+        Changes the currency to the British Pound(£)
+    scroll()
+        Scrolls to input pixel height
+    search_bar()
+        Selects search bar and sends input text
+    '''
+
     def __init__ (self, URL: str = "https://coinmarketcap.com/", *args, **kwargs):
         #args and kwargs let the class inherit any attributes to pass on to child class
         super().__init__(*args, **kwargs)
@@ -21,15 +59,17 @@ class General_Scraper:
         #self denotes an attribute of the class, so its accessible to every other method of the class
         options = EdgeOptions()
         options.add_argument("--headless")
+
         #suppresses all warnings that aren't LOG_FATAL
         options.add_argument("--log-level=2")
+
         #set the window size so correct xpaths are present
         options.add_argument("--window-size=1815, 992")
+
         options.add_argument("--start-maximized")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         self.driver = webdriver.Edge(options = options)
-        #self.driver = webdriver.Edge()
 
         #this increases the edge window to maximum screen size on monitor, so wont work if headless
         #self.driver.maximize_window()
@@ -37,7 +77,6 @@ class General_Scraper:
         self.driver.get(URL)
         self.delay = 10
         
-
     #all defs are public
     def click_element(self, xpath: str):
         '''
@@ -108,6 +147,13 @@ class General_Scraper:
                             ):
         '''
         Waits for the accept cookies element to appear then closes it.
+
+        Parameters:
+        ----------
+        cookies_xpath: str
+            The cookies element xpath.
+        button_xpath: str
+            The close cookies button xpath
         '''
         try:
             WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, cookies_xpath)))
@@ -116,7 +162,6 @@ class General_Scraper:
         except TimeoutException:
             print("Cookies are automatically accepted when browsing coinmarket.")
 
-    #maybe change to have 3 letter currency in parameters and pass it in
     def change_currency(self):
         '''
         Opens the Select Currency button and selects British pound(GBP) when element is present.
@@ -126,17 +171,18 @@ class General_Scraper:
             WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, '//*[@class="de9tta-2 iemqlh cmc-modal-wrapper has-title "]')))
             time.sleep(2)
             self.click_element('//*[@class="ig8pxp-0 jaunlC"]')
-
-            ####If self.driver.maximize_window() is below self.driver.get(URL) in init method, page layout changes and below is how to change currency
-            # self.click_element('//*[@class="sc-1pyr0bh-0 bSnrp sc-1g16avq-0 kBKzKs"]')
-            # WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, '//*[@class="vxp8h8-0 VMCHA"]')))
-            # self.click_element('//button[@data-qa-id="button-global-currency-picker"]')
-            # self.click_element('//*[@class="ig8pxp-0 jaunlC"]')
-
         except:
             print("Currency already in GBP")
 
     def scroll(self, pixels_to_scroll_by: int = 2000):
+        '''
+        Scrolls to a specific height.
+
+        Parameters:
+        ----------
+        pixels_to_scroll_by: int
+            Amount of pixels to scroll by on the webpage
+        '''
         try:
             self.driver.execute_script(f"window.scrollTo(0, {pixels_to_scroll_by});")
         except:
@@ -182,7 +228,6 @@ class General_Scraper:
         return get_url
 
 
-#multiple inheritance from aws storage
 class CoinScraper(General_Scraper, AWS_Data_Storage):
     '''
     A scraper class for the website coinmarketcap to obtain the data values for price, supply, etc. 
@@ -195,52 +240,39 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
     
     Attributes:
     ----------
-    driver: module
-        calls the webdriver module to open a microsoft edge window
-    url_list: list
-        A list of every unique url in the websites page, each corresponding to a crypto coin
-    img_list: list
-        A list of the image links(for this website the only image is the coin logo)
-    img_name_list: list
-        A list of the alt tags for the logo's in the img_list
-    delay: int
-        the amount of time the webdriver will be timeout for, occuring when necessary to wait for a element on the webpage to load
-    dict: dict
-        A dictionary of lists, each list containing the .text data in order of market rank starting with bitcoin
+    img_dict: dict
+        A dict of the image names and links.
+    coin_data_dict: dict
+        A dictionary of lists, each list containing the text data in order of market rank starting with bitcoin
 
     Methods:
-    -------
-    accept_cookies()
-        Closes cookies popup   
-    change_currency()
-        Changes currency data is displayed in  
+    -------  
     get_link()
         Finds the links for each crytpo coin in the page
-    get_image()
-        Finds the coin's logo in its page
-    scroll_bottom()
-        Scrolls to the bottom of the page
-    search_bar()
-        Makes the search bar interactable
-    local_save()
-        Saves raw data in local storage
-    get_text_data()
-        Locates and returns the text data on a coins unique page
     data_scrape()
         Goes through each coin's link and scrapes data
-
+    get_image()
+        Finds the coin's logo in its page
+    get_text_data()
+        Locates and returns the text data on a coins unique page
+    scroll_bottom()
+        Scrolls to the bottom of the page
+    make_coin_df()
+        Converts coin_data_dict to df and cleans it.
+    make_image_df()
+        Converts img_dict to df.
+    rds_upload()
+        Uploads df's to AWS RDS
+    save_option()
+        Different options for save, dependant on arg par option.
     '''
     def __init__ (self, URL: str = "https://coinmarketcap.com/"):
-        # General_Scraper.__init__(self) # or super().__init__()  --> allows for dependency injection
-        # AWS_Data_Storage.__init__(self) # or super(General_Scraper, self).__init__()
         #super requires arguments(URL) as their part of parent classes constructor
         super().__init__(URL)
         self.img_dict = {"ImageName": [], "ImageLink": []}
         self.coin_data_dict = {'CryptoName': [], 'ShortName': [], 'UUID': [], 'URL': [], 'CurrentPrice (£)': [], '24hrLowPrice (£)': [], '24hrHighPrice (£)': [], 
                                 'MarketCap (£)': [], 'FullyDilutedMarketCap (£)': [], 'Volume (£)': [], 'Volume/MarketCap': [], 
                                 'CirculatingSupply': [], 'MarketDominance (%)': []}
-        self.df_to_dict = {}
-
 
     #public
     def get_links(self):
@@ -269,7 +301,6 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         return url_list
 
     #public
-    #maybe pass in the url list as a parameter
     def data_scrape(self, coins_to_scrape = 0):
         '''
         Iterates through url_list by calling self.get_links() function for get_text_data() and get_image() to scrape.
@@ -288,8 +319,7 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         '''
         url_counter = 0
         coin_link_list = self.get_links()
-        #print(coin_link_list)
-        #print(len(coin_link_list))
+    
         while url_counter < coins_to_scrape:
             URL = coin_link_list[url_counter]
             self.driver.get(URL)
@@ -298,8 +328,8 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
             time.sleep(1)
             self.get_text_data()
             self.coin_data_dict['URL'].append(coin_link_list[url_counter])
-            #best to try upload to cloud as the loop continues so if there is an error it is obvious
             url_counter += 1
+
         return url_counter
         
     #public
@@ -314,7 +344,6 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         img_name
             Image name to be tested in unittest
         '''
-        #webdriverwait here
         img_tag = self.find_elements_in_container('//div[@class="sc-16r8icm-0 gpRPnR nameHeader"]', 'img')
         img_link = img_tag.get_attribute('src')
         self.img_dict["ImageLink"].append(img_link)
@@ -336,21 +365,21 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         A UUID was also generated using the package.
         '''
 
+        # Get coin name and abbrevation.
         title = self.driver.find_element(by=By.XPATH, value='//h2[@class="sc-1q9q90x-0 jCInrl h1"]').text
         id_tag = title.replace('\n', ' (')
         split_name = id_tag.split(' (')
-        
         self.coin_data_dict['CryptoName'].append(split_name[0])
         self.coin_data_dict['ShortName'].append(split_name[-1])
         
+        # Scroll to show the necessary button for data scrape.
         time.sleep(1)
         self.scroll()
         time.sleep(2)
-        # show_more_button = self.driver.find_elements(by=By.XPATH, value='//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 iutcov"]//div[@class="sc-16r8icm-0 nds9rn-0 dAxhCK"]')
-
-        # for button in show_more_button:
-        #     sh = button.find_element(by=By.XPATH, value='button')
-        #     sh.click()
+        
+        # CoinMarket introduced new xpaths for specific coins.
+        # Below are methods on how to find the button to show data for scraping.
+        # First try except is the xpaths for ~95% of the coins:
         try:
             show_more_button = self.driver.find_element(by=By.XPATH, value='//div[@class="sc-16r8icm-0 sc-19zk94m-1 gRSJaB"]//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 hgKnTV"]//div[@class="sc-16r8icm-0 nds9rn-0 cQtSIv"]//button[@class="x0o17e-0 dDXPcp"]')
             show_more_button.click()
@@ -361,26 +390,34 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
             show_more_button_alt = self.driver.find_element(by=By.XPATH, value='//div[@class="sc-16r8icm-0 sc-19zk94m-1 eToEXD"]//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 hgKnTV"]//div[@class="sc-16r8icm-0 nds9rn-0 cQtSIv"]//button[@class="x0o17e-0 dDXPcp"]')
             show_more_button_alt.click()
         except:
-            #print("Current page has normal xpaths")
+            pass
+
+        try:
+            show_more_button_alt2 = self.driver.find_element(by=By.XPATH, value='//div[@class="sc-16r8icm-0 sc-19zk94m-1 cOhEUB"]//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 hgKnTV"]//div[@class="sc-16r8icm-0 nds9rn-0 cQtSIv"]//button[@class="x0o17e-0 dDXPcp"]')
+            show_more_button_alt2.click()
+        except:
             pass
 
         time.sleep(1)
+        
+        #Here the elements of the container holding some of the desired data are found.
         try:
             data_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 iutcov"]//div[@class="sc-16r8icm-0 nds9rn-0 cQtSIv"]')
         except TimeoutException:
             print("fail")
 
-
+        # Splits the list of scraped data by new lines.
         data_list = data_container[0].text.split('\n')
 
+        # Appends to the dict the complimentary tags
         volume_tag = data_list[12]
         vol_mc_tag = data_list[14]
         self.coin_data_dict['Volume (£)'].append(volume_tag)
         self.coin_data_dict['Volume/MarketCap'].append(vol_mc_tag)
 
-        #coins such as yearn finance have string for price like 'yearn.finance Price $11,405.31'
-        #this leave an extra "." in the float so to prevent this
-        #split the full string by spaces then only append the position of the price
+        # Coins such as yearn finance have string for price like 'yearn.finance Price $11,405.31'
+        # This leave an extra "." in the float so to prevent this
+        # split the full string by spaces then only append the position of the price
         price_split = data_list[2].split(' ')
         price_tag = price_split[-1]
         self.coin_data_dict['CurrentPrice (£)'].append(price_tag)
@@ -388,43 +425,38 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         low_price_tag = data_list[8]
         high_price_tag = data_list[9]
         market_dom_tag = data_list[15]
+        circ_supply_tag = data_list[-4]
         self.coin_data_dict['24hrLowPrice (£)'].append(low_price_tag)
         self.coin_data_dict['24hrHighPrice (£)'].append(high_price_tag)
         self.coin_data_dict['MarketDominance (%)'].append(market_dom_tag)
+        self.coin_data_dict['CirculatingSupply'].append(circ_supply_tag)
 
+        # Some values are found in a seperate container.
+        # This container can also change depending on the coin.
+        # So the values are scraped depending on the size of elements found.
         values_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="statsValue"]')
         if len(values_container) == 5:
             market_cap_tag = values_container[0].text
             fdmc_tag = values_container[1].text
-            circ_supply_tag = values_container[4].text
             self.coin_data_dict['MarketCap (£)'].append(market_cap_tag)
             self.coin_data_dict['FullyDilutedMarketCap (£)'].append(fdmc_tag)
-            self.coin_data_dict['CirculatingSupply'].append(circ_supply_tag)
         else:
             pass
+
         if len(values_container) == 7:
             market_cap_tag = values_container[0].text
             fdmc_tag = values_container[2].text
-            circ_supply_tag = values_container[-1].text
             self.coin_data_dict['MarketCap (£)'].append(market_cap_tag)
             self.coin_data_dict['FullyDilutedMarketCap (£)'].append(fdmc_tag)
-            self.coin_data_dict['CirculatingSupply'].append(circ_supply_tag)
         else:
             pass
 
         my_uuid = uuid.uuid4().hex
         self.coin_data_dict['UUID'].append(my_uuid)
 
-        ##################
-        #timestamp column
-    
-    
         #cant return the self.coin_data_dict as it is used in other methods 
         return id_tag,  my_uuid, volume_tag, vol_mc_tag, price_tag, low_price_tag, high_price_tag, market_dom_tag, market_cap_tag, fdmc_tag, circ_supply_tag
-
-#can test xpath, whether valid or not, can mock find_element
-
-    
+ 
     def scroll_bottom(self):
         '''
         Scrolls down the page by 2000 then calls get_links() and continues on to scroll for next 20 link elements
@@ -434,7 +466,6 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         scroll_down_y_axis = 2000
 
         while scroll_down_y_axis < max_page_height:
-            #self.driver.execute_script(f"window.scrollTo(0, {scroll_down_y_axis});")
             self.scroll(scroll_down_y_axis)
             time.sleep(2)
             self.get_links()
@@ -451,7 +482,7 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         '''
         data = super().make_dataframe(self.coin_data_dict)
         clean_data_df = super().clean_dataframe(data)
-        #show(data)
+        
         return clean_data_df
     
     def make_image_df(self):
@@ -464,20 +495,20 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
             Dataframe with image name and url
         '''
         image_df = super().make_dataframe(self.img_dict)
-        #show(image_df)
+
         return image_df
 
     def rds_upload(self):
+        '''
+        Uploads the df's for the current day to AWS RDS.
+        '''
         # set the date.today()to a variable as otherwise there will be an identifier error when naming table:
         # sqlalchemy.exc.IdentifierError: Identifier '<built-in method today of type object at 0x00007FFD5A970BF0>_data' exceeds maximum length of 63 characters 
         current_date = date.today()
         coin_df = self.make_coin_df()
         img_df = self.make_image_df()
-        # show(coin_df)
-        # show(img_df)
         super().upload_tabular_data_to_RDS(coin_df, f'{current_date}_data')
         super().upload_tabular_data_to_RDS(img_df, 'coin_images')
-        #check if called twice for super method
 
     def save_option(self, choice: int):
         '''
@@ -518,25 +549,3 @@ class CoinScraper(General_Scraper, AWS_Data_Storage):
         else:
             print("5555 - no save")
             pass
-
-        
-def scraper():
-    # scraper = CoinScraper()
-    # time.sleep(2)
-    # scraper.close_popup()
-    # scraper.accept_cookies()
-    # scraper.change_currency()
-    # scraper.scroll_bottom()
-    # scraper.data_scrape(1)
-    # print(scraper.coin_data_dict)
-
-    #scraper.data_handling()
-    #scraper.local_save()
-    #pprint.pprint(scraper.coin_data_dict)
-    #scraper.rds_upload()
-    print(CoinScraper.mro())
-    exit()
-
-
-if __name__ == '__main__':
-    scraper()
