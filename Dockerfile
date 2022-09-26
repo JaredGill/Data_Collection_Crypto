@@ -85,4 +85,4 @@ CMD ["python3", "main.py", "--save", "4"]
 #for EC2 use sudo docker pull jared22/crypto_scraper_repo
 
 # below works for crontab in EC2
-#0 11 * * * sudo docker image prune -f && sudo docker pull jared22/crypto_scraper_repo && export AWS_SECRET_KEY="xHN5ck151mK4L41V8a6AC0+pQ6e9MLgeZ5uU1foj" && export AWS_ACCESS_KEY="AKIAU4SY43ONZRUKKB4U" && sudo docker run --rm -e AWS_SECRET_KEY=$AWS_SECRET_KEY -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY --name test jared22/crypto_scraper_repo
+#0 11 * * * sudo docker image prune -f && sudo docker pull jared22/crypto_scraper_repo && export AWS_SECRET_KEY="" && export AWS_ACCESS_KEY="" && sudo docker run --rm -e AWS_SECRET_KEY=$AWS_SECRET_KEY -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY --name test jared22/crypto_scraper_repo
