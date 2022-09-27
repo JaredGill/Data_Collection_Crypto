@@ -78,12 +78,10 @@ url_counter = 0
 - get_image() functioned similar to get_links working through a container, then finding image src for link/download, and alt for imgage name.
 - get_text_data() also found some elements either by direct xpath, or container usage as well. But one container's data couldnt be refined to individual xpaths as all the class names were exactly the same. So instead the container located all elements and stored them in a list to be called upon as required.
 ```python
-values_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="statsValue"]')
-        self.coin_data_dict['MarketCap'].append(values_container[0].text)
-        self.coin_data_dict['FullyDilutedMarketCap'].append(values_container[1].text)
-        self.coin_data_dict['Volume'].append(values_container[2].text)
-        self.coin_data_dict['Volume/MarketCap'].append(values_container[3].text)
-        self.coin_data_dict['CirculatingSupply'].append(values_container[4].text)
+data_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="sc-19zk94m-4 eYCtRS"]//div[@class="sc-16r8icm-0 iutcov"]//div[@class="sc-16r8icm-0 nds9rn-0 cQtSIv"]')
+data_list = data_container[0].text.split('\n')
+volume_tag = data_list[12]
+self.coin_data_dict['Volume (£)'].append(volume_tag)
 ```
 - In addition a universally unique ID was generated using the UUID4 package.
 
@@ -117,6 +115,7 @@ for (name, link) in zip(img_name_list, img_link_list):
 - As this data changes every second, this project attempts to scrape at 12:00 every day to create some historical data. 
 - The images were saved by iterating between 2 lists, both of which had strings added as the coins were scraped so all positions in list will be linked to another.
 - E.g. Bitcoin is 1st in market rank so its name and link will be at position 0 in both lists.
+- To save on AWS refer to AWS S3 and RDS sections.
 
 ## Inheritance
 The structure of the project was one child class (CoinScraper) inherits from two parent classes(General_Scraper and AWS_Data_Storage). This required several stapes:
@@ -162,10 +161,14 @@ mock_click_element.assert_called_once()
 - Here the patch line finds the location of the function being mocked by inputting the definition which can be found be right-clicking the function where it is used.
 - The patch's must be in the inverse order of where they are called in script.
 
+## Docker
+Docker is a platform that allows users to save their development environment and files to a "image". This image can be pulled to other systems and will have everything needed to run the program such as software and libraries isolated to itself. This image can be run in a instance called a container. These allow for quick testing and sharing are built with a DockerFile. 
+- The Docker image is first made with a docker build line.
+- The image is tagged and pushed to dockerhub where it an then be pulled to EC2 for easy deployment.
+
 ## Amazon Web Services
 AWS was chosen as a cloud service provider. Of these services a Amazon Simple Storage Service (S3 Bucket), Relation Database (RDS), and Amazon Elastic Compute Cloud (EC2). 
 To connect to the AWS through command line a IAM user was created and the package awscli was used to connect to the user account on the local machine using the keys through enironment variables. On the EC2 awscli was not required as the program was run through docker image so keys were passed as environment variables on the crontab file. 
-
 ### Environmental Variables
 - Environmental variables were used to handle senstitive details for connecting to AWS RDS and S3.
 - For the local windows machine this was done by searching and clicking "Edit the systems Environmental Variables".
@@ -185,7 +188,7 @@ session = boto3.Session(
 s3 = session.client('s3')
 ```
 ### RDS
-The RDS holds the historial data from everyday the scraper was ran, as well as a image table. The connection was made with psycopg2 and then the tables were uploaded through sqlalchemy psycopg2:
+The RDS holds the historial data from everyday the scraper was ran, as well as a image table. The connection was made with psycopg2 and then the tables were uploaded through sqlalchemy:
 ```python
 engine = create_engine(f"{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{ENDPOINT}:{PORT}/{DATABASE}")
 engine.connect()
@@ -201,7 +204,23 @@ User ubuntu
 ```
 The crontab was then setup to run at 12:00pm everyday and prune the docker images, pull the latest, then run a Docker container of the image.
 
-## Creating a Node Exporter
+## Grafana and Prometheus
+- Grafana was used to observe and monitor the metrics of the EC2 instance and the docker containers through Prometheus. 
+- Initially a docker.daemon.json file for docker metrics and sudo nano /etc/systemd/system/node_exporter.service to create a node exporter for the EC2.
+### Creating docker.daemon
+- This allows prometheus to track docker container metrics which are ran from the EC2. The file contains:
+``` 
+{
+    "metrics-addr" : "127.0.0.1:9323",
+    "experimental": true,
+    "features": {
+    "buildkit": true
+    }
+}
+```
+- This gives prometheus an address to retrieve the metrics from.
+### Creating a Node Exporter
+- The node exporter sends the computers local system metrics to prometheus and grafana. In this case the local system is the EC2.
 - Navigated to /etc/systemd/system and created a node_exporter.service with the following contents:
 ```service
 [Unit]
@@ -218,15 +237,21 @@ WantedBy=multi-user.target
 ```
 - Then started the node with sudo systemctl start node_exporter 
 - Checked its status with sudo systemctl status node_exporter
-
-## Grafana
-- Grafana was used to observe and monitor the metrics of the EC2 instance and the docker containers. 
-- Initially a docker.daemon.json file for docker metrics and sudo nano /etc/systemd/system/node_exporter.service to create a node exporter for the EC2.
+### Prometheus
+- Prometheus can gather and process data for data visualisation. Here it was configured to observe the mertics of the EC2 and docker container through the node and docker exporter setup.
+- A prometheus.yml file was set up to scrape metrics for each:
+```python
+# OS monitoring
+  - job_name: 'node'
+    scrape_interval: '30s'
+    static_configs:
+      - targets: ['localhost:9100']
+```
+- The prometheus.yml was then started as a docker container that will run indefinetly whilst the EC2 is running with command:
+        - sudo docker run --rm -d --network=host --name prometheus -v /home/ubuntu/prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus --config.file=/etc/prometheus/prometheus.yml --web.enable-lifecycle
+### Grafana
+- Grafana was utilised to make a dashboard of the prometheus metrics for clearer data visualisation
 - This allowed various metrics to be observed such as:
 ![image](https://user-images.githubusercontent.com/108297203/190483538-dd53e1e9-7e03-4fe8-aa22-25d538108077.png)
-
-- Due to the Ec2 being the free tier version, and running the docker exporter and node exporter constantly in the background, when the docker container was run the EC2 went down as seen in the follwoing:
-![image](https://user-images.githubusercontent.com/108297203/190494205-84036b83-8c1d-40d2-ad9f-99c045376c57.png)
-
-- So the node exporter was stopped to allow for docker containers to run on EC2. 
-
+![image](https://user-images.githubusercontent.com/108297203/192539443-ae14d17b-9ee7-47d6-91ab-70bd60861609.png)
+![image](https://user-images.githubusercontent.com/108297203/192539584-61367f70-f6a1-4bf3-acd3-791492f93db7.png)
