@@ -208,7 +208,7 @@ The crontab was then setup to run at 12:00pm everyday and prune the docker image
 - Grafana was used to observe and monitor the metrics of the EC2 instance and the docker containers through Prometheus. 
 - Initially a docker.daemon.json file for docker metrics and sudo nano /etc/systemd/system/node_exporter.service to create a node exporter for the EC2.
 ### Creating docker.daemon
-- This allows prometheus to track docker container metrics which are ran from the EC2. The file contains:
+- This  gives prometheus an address to track docker container metrics which are ran from the EC2. The file contains:
 ``` 
 {
     "metrics-addr" : "127.0.0.1:9323",
@@ -218,7 +218,6 @@ The crontab was then setup to run at 12:00pm everyday and prune the docker image
     }
 }
 ```
-- This gives prometheus an address to retrieve the metrics from.
 ### Creating a Node Exporter
 - The node exporter sends the computers local system metrics to prometheus and grafana. In this case the local system is the EC2.
 - Navigated to /etc/systemd/system and created a node_exporter.service with the following contents:
@@ -235,8 +234,7 @@ ExecStart=/home/ubuntu/node_exporter-1.1.2.linux-amd64/node_exporter (path to no
 [Install]
 WantedBy=multi-user.target
 ```
-- Then started the node with sudo systemctl start node_exporter 
-- Checked its status with sudo systemctl status node_exporter
+- Then started the node with sudo systemctl start node_exporter and checked its status with sudo systemctl status node_exporter
 ### Prometheus
 - Prometheus can gather and process data for data visualisation. Here it was configured to observe the mertics of the EC2 and docker container through the node and docker exporter setup.
 - A prometheus.yml file was set up to scrape metrics for each:
@@ -252,6 +250,10 @@ WantedBy=multi-user.target
 ### Grafana
 - Grafana was utilised to make a dashboard of the prometheus metrics for clearer data visualisation
 - This allowed various metrics to be observed such as:
-![image](https://user-images.githubusercontent.com/108297203/190483538-dd53e1e9-7e03-4fe8-aa22-25d538108077.png)
 ![image](https://user-images.githubusercontent.com/108297203/192539443-ae14d17b-9ee7-47d6-91ab-70bd60861609.png)
 ![image](https://user-images.githubusercontent.com/108297203/192539584-61367f70-f6a1-4bf3-acd3-791492f93db7.png)
+
+## Future updates
+- More functionality with the generaly scraper class could be implemented. A change page option, or passing in the chosen currency would make it more robust.
+- The website does have a tab for historical data for each coin (https://coinmarketcap.com/currencies/bitcoin/historical-data/). These could be scraped for an analysis of coins historical data through the previous crashes and observe where the current price is relative to the trends already observed in the market years ago.
+-  
