@@ -1,8 +1,8 @@
 # Data_Collection_CoinMarket
-Data scrape of the website https://coinmarketcap.com/ with Selenium to get crypto coin data.
+This project is a data scrape of the website https://coinmarketcap.com/ with Selenium to get crypto coin data. It will involve the use of selenium 
 
 
-##Building a Scraper 
+## Building a Scraper 
 - The package Selenium was used to open and control a webpage in Microsoft Edge to coinmarket using the code 
 ```python
 def __init__ (self, URL: str = "https://coinmarketcap.com/"):
@@ -83,6 +83,35 @@ values_container = self.driver.find_elements(by=By.XPATH, value='//div[@class="s
 
 pip3 freeze > requirements.txt was used to produce requirements.txt for docker
 
+## Local Save
+To store the scraped data locally a raw_data folder was created inside of which had two child directories for images, and numerical data.
+```python
+data_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/total_data"
+if not os.path.exists(data_folder_path):
+    os.makedirs(data_folder_path)
+
+current_date = date.today()
+
+df_for_save.to_json(f'C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/total_data/{current_date}_total_data.json')
+
+image_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images"
+if not os.path.exists(image_folder_path):
+    os.makedirs(image_folder_path)
+
+img_name_list = self.img_dict["ImageName"]
+img_link_list = self.img_dict["ImageLink"]
+
+# zip function allows iteration for 2+ lists and runs until smallest list ends
+for (name, link) in zip(img_name_list, img_link_list):
+    if not os.path.exists(f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images/{name}_logo.jpeg"):
+        image_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/images/{name}_logo.jpeg"
+        urllib.request.urlretrieve(link, image_path)
+```
+- The numerical data for the crypto coins was created as a prior to this function and passed in as the variable "df_for_save".
+- As this data changes every second, this project attempts to scrape at 12:00 every day to create some historical data. 
+- The images were saved by iterating between 2 lists, both of which had strings added as the coins were scraped so all positions in list will be linked to another.
+- E.g. Bitcoin is 1st in market rank so its name and link will be at position 0 in both lists.
+
 ## Inheritance
 The structure of the project was one child class (CoinScraper) inherits from two parent classes(General_Scraper and AWS_Data_Storage). This required several stapes:
 - The method resolution order was found with cmd
@@ -94,6 +123,45 @@ The structure of the project was one child class (CoinScraper) inherits from two
 - So both the left hand side, and middle class will have a super().__init__() in their __init__ method.
         - The General_Scraper class will have super().__init__(*args, **kwargs) to inherit and pass any arguements
     
+## Unit Tests
+Each public function was unit tested to ensure they were working correctly.
+- For some it involved calling the function and testing the return value
+```python
+iterations = self.cs.data_scrape(3)
+number_of_coins = 3
+self.assertEqual(number_of_coins, iterations)
+self.assertIsInstance(iterations, int)
+```
+-In some cases the return value could change such as:
+```python
+links = self.cs.get_links()
+first_url = "https://coinmarketcap.com/currencies/bitcoin/"
+length_urls = 17
+self.assertEqual(first_url, links[0])
+#as top 100 crytpos change daily, last url may fail
+last_url = "https://coinmarketcap.com/currencies/multi-collateral-dai/"
+self.assertEqual(last_url, links[11])
+self.assertEqual(length_urls, len(links))
+self.assertIsInstance(links, list)
+```
+- Here the amount of links scraped and last url are subject to change as the webpage loads dynamically so this test may fail.
+
+- For some functions the ability to call on specific functions in different classes or files were tested using Mock.
+- This Mock class simulates the given function.
+```python
+@patch('selenium.webdriver.support.wait.WebDriverWait.until')
+@patch('selenium.webdriver.remote.webelement.WebElement.click')
+def test_accept_cookies(self,
+                    mock_click_element: Mock,
+                    mock_until: Mock):
+
+self.s.accept_cookies()
+mock_until.assert_called_once()
+mock_click_element.assert_called_once()
+```
+- Here the patch line finds the location of the function being mocked by inputting the definition which can be found be right-clicking the function where it is used.
+- The patch's must be in the inverse order of where they are called in script.
+
 ## Environmental Variables
 - Environmental variables were used to handle senstitive details for connecting to AWS RDS and S3.
 - For the local windows machine this was done by searching and clicking "Edit the systems Environmental Variables".
@@ -103,7 +171,11 @@ The structure of the project was one child class (CoinScraper) inherits from two
 - These were called in the python script using the os.environ.get() function
 - To pass these in the script when running the docker image they were called individually in the docker run line:
         - sudo docker run -it -e AWS_SECRET_KEY=$AWS_SECRET_KEY -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY --name github_example jared22/crypto_scraper_repo
-     
+
+## Amazon Web Services
+### S3 Bucket
+- test
+
 ## Creating a Node Exporter
 - Navigated to /etc/systemd/system and created a node_exporter.service with the following contents:
 ```service
