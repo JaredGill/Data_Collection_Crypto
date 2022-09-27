@@ -248,4 +248,3 @@ WantedBy=multi-user.target
 ## Future updates
 - More functionality with the generaly scraper class could be implemented. A change page option, or passing in the chosen currency would make it more robust.
 - The website does have a tab for historical data for each coin (https://coinmarketcap.com/currencies/bitcoin/historical-data/). These could be scraped for an analysis of coins historical data through the previous crashes and observe where the current price is relative to the trends already observed in the market years ago.
--  
