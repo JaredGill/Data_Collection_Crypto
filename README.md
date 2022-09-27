@@ -1,5 +1,5 @@
 # Data_Collection_CoinMarket
-This project is a data scrape of the website https://coinmarketcap.com/ with Selenium to get crypto coin data. It will involve the use of selenium 
+This project is a data scrape of the website https://coinmarketcap.com/ with Selenium to get crypto coin data. It will involve the use of various python packages to scrape data and then to connect to Amazon Web Services S3 Bucket and RDS. The python script will be saved as a Docker image to be ran on a AWS EC2 instance which will pull the Docker Image and run the scraper everyday at 12:00pm using crontab. The EC2 metrics will be observed and monitored using prometheus and grafana through the aid of a node exporter. Lastly a CI/CD pipeline will be created to update the Docker image upon a push to Github.
 
 
 ## Building a Scraper 
@@ -125,14 +125,8 @@ The structure of the project was one child class (CoinScraper) inherits from two
     
 ## Unit Tests
 Each public function was unit tested to ensure they were working correctly.
-- For some it involved calling the function and testing the return value
-```python
-iterations = self.cs.data_scrape(3)
-number_of_coins = 3
-self.assertEqual(number_of_coins, iterations)
-self.assertIsInstance(iterations, int)
-```
--In some cases the return value could change such as:
+- For some it involved calling the function and testing the return value.
+- In other cases the return value could change such as:
 ```python
 links = self.cs.get_links()
 first_url = "https://coinmarketcap.com/currencies/bitcoin/"
@@ -162,19 +156,44 @@ mock_click_element.assert_called_once()
 - Here the patch line finds the location of the function being mocked by inputting the definition which can be found be right-clicking the function where it is used.
 - The patch's must be in the inverse order of where they are called in script.
 
-## Environmental Variables
+## Amazon Web Services
+AWS was chosen as a cloud service provider. Of these services a Amazon Simple Storage Service (S3 Bucket), Relation Database (RDS), and Amazon Elastic Compute Cloud (EC2). 
+To connect to the AWS through command line a IAM user was created and the package awscli was used to connect to the user account on the local machine using the keys through enironment variables. On the EC2 awscli was not required as the program was run through docker image so keys were passed as environment variables on the crontab file. 
+
+### Environmental Variables
 - Environmental variables were used to handle senstitive details for connecting to AWS RDS and S3.
 - For the local windows machine this was done by searching and clicking "Edit the systems Environmental Variables".
-        -Then selected the "Environmental variables option, and adding a new variable for AWS_Access_Key and AWS_Secret_Access_key
+        -Then selected the "Environmental variables option, and adding a new variable for AWS_Access_Key and AWS_Secret_key
 - For the EC2 Linux machine they were edited into the bottom of the bashrc file.
         - E.g. export AWS_ACCESS_KEY='example'
 - These were called in the python script using the os.environ.get() function
 - To pass these in the script when running the docker image they were called individually in the docker run line:
         - sudo docker run -it -e AWS_SECRET_KEY=$AWS_SECRET_KEY -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY --name github_example jared22/crypto_scraper_repo
-
-## Amazon Web Services
 ### S3 Bucket
-- test
+The S3 bucket is a container that was used for data.jsons and images. In order to prepare for upload the files must first be saved locally, then the package boto3 was used to connect:
+```python
+session = boto3.Session( 
+        aws_access_key_id=AWS_ACCESS_KEY, 
+        aws_secret_access_key=AWS_SECRET_KEY,
+        region_name=AWS_REGION_NAME)
+s3 = session.client('s3')
+```
+### RDS
+The RDS holds the historial data from everyday the scraper was ran, as well as a image table. The connection was made with psycopg2 and then the tables were uploaded through sqlalchemy psycopg2:
+```python
+engine = create_engine(f"{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{ENDPOINT}:{PORT}/{DATABASE}")
+engine.connect()
+input_df.to_sql(table_name, engine, if_exists='replace')
+```
+### EC2
+Once created the EC2 was connected to using a Remote - SSH extension on VSCode made by Microsoft.
+This required a config file to be set up:
+```config
+Host EC2_address
+HostName path_to_pem_file
+User ubuntu
+```
+The crontab was then setup to run at 12:00pm everyday and prune the docker images, pull the latest, then run a Docker container of the image.
 
 ## Creating a Node Exporter
 - Navigated to /etc/systemd/system and created a node_exporter.service with the following contents:
