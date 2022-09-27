@@ -245,6 +245,10 @@ WantedBy=multi-user.target
 ![image](https://user-images.githubusercontent.com/108297203/192539443-ae14d17b-9ee7-47d6-91ab-70bd60861609.png)
 ![image](https://user-images.githubusercontent.com/108297203/192539584-61367f70-f6a1-4bf3-acd3-791492f93db7.png)
 
+## CI/CD
+- The process of continous deployment(CD) allows small changes to be added to the program to observe its effect through continous integration(CI).
+- Github actions provides an automated CI/CD process which will occur when a push is made to the main branch of the project.
+- The Github action was made following the steps on https://docs.docker.com/ci-cd/github-actions/ 
 ## Future updates
 - More functionality with the generaly scraper class could be implemented. A change page option, or passing in the chosen currency would make it more robust.
 - The website does have a tab for historical data for each coin (https://coinmarketcap.com/currencies/bitcoin/historical-data/). These could be scraped for an analysis of coins historical data through the previous crashes and observe where the current price is relative to the trends already observed in the market years ago.
