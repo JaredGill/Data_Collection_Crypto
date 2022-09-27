@@ -1,6 +1,12 @@
 # Data_Collection_CoinMarket
-This project is a data scrape of the website https://coinmarketcap.com/ with Selenium to get crypto coin data. It will involve the use of various python packages to scrape data and then to connect to Amazon Web Services S3 Bucket and RDS. The python script will be saved as a Docker image to be ran on a AWS EC2 instance which will pull the Docker Image and run the scraper everyday at 12:00pm using crontab. The EC2 metrics will be observed and monitored using prometheus and grafana through the aid of a node exporter. Lastly a CI/CD pipeline will be created to update the Docker image upon a push to Github.
-
+This project is a data scrape of the website https://coinmarketcap.com/ with Selenium to get crypto coin data. It will involve the use of various python packages(see below) to scrape data and then to connect to Amazon Web Services S3 Bucket and RDS. The python script will be saved as a Docker image to be ran on a AWS EC2 instance which will pull the Docker Image and run the scraper everyday at 12:00pm using crontab. The Docker and EC2 metrics will be observed and monitored using prometheus and grafana using a node exporter. Lastly a CI/CD pipeline will be created to update the Docker image upon a push to Github.
+### Built with
+selenium==4.4.3         (To scrape data)
+pandas==1.4.3           (To handle data)
+numpy==1.23.1           (To clean data)
+boto3==1.24.53          (To connect to AWS S3 Bucket and upload)
+psycopg2==2.9.3         (To connect to RDS)
+SQLAlchemy==1.4.40      (To upload data to RDS)
 
 ## Building a Scraper 
 - The package Selenium was used to open and control a webpage in Microsoft Edge to coinmarket using the code 
