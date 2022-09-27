@@ -17,15 +17,8 @@ def __init__ (self, URL: str = "https://coinmarketcap.com/"):
 ```
 - Selenium finds specific features via xpaths, which can be found using ctrl + shift + c whilst on the webpage and hovering over elements.
 - A unique xpath is preferred, or making a list of all elements found by xpath and choosing which to use.
-- A common way to find unique xpaths is to obtain a parent xpath of element and set a variable equal to it called a container.
-- In this container you can then refine the xpath search.
-- Several methods were designed on this page to navigate it included accept cookies, change currency.
-- Accept cookies waited for the element to appear on page then close the pop-up
-```python
-WebDriverWait(self.driver, self.delay).until(EC.presence_of_element_located((By.XPATH, '//*[@id="cmc-cookie-policy-banner"]')))
-            self.accept_cookies_button = self.driver.find_element(by=By.XPATH, value='//*[@class="cmc-cookie-policy-banner__close"]')
-            self.accept_cookies_button.click()
-```
+- A common way to find unique xpaths is to obtain a parent xpath of element and set a variable equal to it called a container where you can then refine the xpath search.
+- Several methods were designed on this page to navigate it including change currency.
 - Change currency finds and clicks option, waits for elements to load before clicking the british pound option.
 ```python
 settings_button = self.driver.find_element(by=By.XPATH, value='//*[@class="sc-1pyr0bh-0 bSnrp sc-1g16avq-0 kBKzKs"]')
@@ -49,7 +42,6 @@ max_page_height = self.driver.execute_script("return document.documentElement.sc
             time.sleep(3)
             scroll_down_y_axis += 2000
 ```            
-
 - In the above method there was a get_links() called. This method obtains the links for each coin via their "a" tag in the main container for the table on the homepage.
 - It then saves the href's from the tags to a list.
 ```python 
