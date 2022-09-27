@@ -48,7 +48,6 @@ class AWS_Data_Storage():
         df_for_save: dataframe
             The dataframe to save to json file
         '''
-        print("222222222222222222222222222222222222222222222222222222222222222222222")
         data_folder_path = f"C:/Users/jared/AiCore/Data_Collection_Pipeline/raw_data/total_data"
         if not os.path.exists(data_folder_path):
             os.makedirs(data_folder_path)
@@ -224,10 +223,6 @@ class AWS_Data_Storage():
         engine = create_engine(f"{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{ENDPOINT}:{PORT}/{DATABASE}")
         engine.connect() 
         input_df.to_sql(table_name, engine, if_exists='replace')
-
-        #check creat_engine, connect, if df to sql is called once
-        #integration test, create another rds and see if possible to pull across table
-            # use ifexists, ifreplace etc 
 
     def arg_par(self):
         '''

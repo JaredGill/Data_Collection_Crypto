@@ -57,10 +57,10 @@ class ScraperTestCase(unittest.TestCase):
         
         #1st and last url, right lenthg and type
         first_url = "https://coinmarketcap.com/currencies/bitcoin/"
-        length_urls = 13
+        length_urls = 17
         self.assertEqual(first_url, links[0])
         #as top 100 crytpos change daily, last url may fail
-        last_url = "https://coinmarketcap.com/currencies/shiba-inu/"
+        last_url = "https://coinmarketcap.com/currencies/multi-collateral-dai/"
         #the amount of links scraped can very by 1 or 2 links so assertEqual may fail
         self.assertEqual(last_url, links[11])
         self.assertEqual(length_urls, len(links))
@@ -77,19 +77,14 @@ class ScraperTestCase(unittest.TestCase):
         self.assertEqual(name, img[1])
 
     def test_get_text_data(self):
-        # test_dict = {'CryptoName': ['Bitcoin (BTC)'], 'UUID': ['8d73b5b64315484eb6e8d1075cb0779a'], 'URL': ['https://coinmarketcap.com/currencies/bitcoin/'], 
-        #             'CurrentPrice': ['Bitcoin Price £19,520.83'], '24hrLowPrice': ['£18,587.82 /'], '24hrHighPrice': ['£19,694.61'], 
-        #             'MarketCap': ['Market Cap £373,614,210,638.43'], 'FullyDilutedMarketCap': ['Fully Diluted Market Cap £410,395,689,827.38'], 
-        #             'Volume': ['£23,925,465,965.66'], 'Volume/MarketCap': ['Volume / Market Cap 0.06404'], 'CirculatingSupply': ['Circulating Supply 19,117,887 BTC'], 
-        #             'MarketDominance (%)': ['Market Dominance 40.26%']}
         self.cs.driver.get('https://coinmarketcap.com/currencies/bitcoin/')
-
         data = self.cs.get_text_data()
         time.sleep(2)
         id_match = "Bitcoin (BTC"
         self.assertEqual(id_match, data[0])
 
         #set up while loop to test all returns from get_text_data
+        #as these data points change constantly they are tested for type(string) not specific values
         #i.e. the id_tag,  my_uuid, volume_tag, vol_mc_tag, price_tag, low_price_tag, high_price_tag, market_dom_tag, market_cap_tag, fdmc_tag, circ_supply_tag
         counter = 0
         list_counter = 0
@@ -98,16 +93,53 @@ class ScraperTestCase(unittest.TestCase):
             counter +=1
             list_counter +=1
 
-    @patch('Scraper.CoinScraper.clean_dataframe')
-    @patch('Scraper.CoinScraper.make_dataframe')
+    @patch('AWS_storage.AWS_Data_Storage.clean_dataframe')
+    @patch('AWS_storage.AWS_Data_Storage.make_dataframe')
     def test_make_coin_df(self,
                             mock_make_dataframe: Mock,
                             mock_clean_dataframe: Mock
                             ):
-        test = self.cs.make_coin_df()
+        self.cs.make_coin_df()
         mock_make_dataframe.assert_called_once()
         mock_clean_dataframe.assert_called_once()
         
+    @patch('AWS_storage.AWS_Data_Storage.make_dataframe')
+    def test_make_image_df(self,
+                            mock_make_dataframe: Mock,
+                            ):
+        self.cs.make_image_df()
+        mock_make_dataframe.assert_called_once()
+
+    @patch('AWS_storage.AWS_Data_Storage.upload_tabular_data_to_RDS')
+    @patch('Scraper.CoinScraper.make_image_df')
+    @patch('Scraper.CoinScraper.make_coin_df')
+    def test_rds_upload(self,
+                            mock_make_coin_df: Mock,
+                            mock_make_image_df: Mock,
+                            mock_upload_tabular_data_to_RDS: Mock
+                            ):
+        self.cs.rds_upload()
+        mock_make_coin_df.assert_called_once()
+        mock_make_image_df.assert_called_once()
+        mock_upload_tabular_data_to_RDS.assert_called()
+
+    @patch('Scraper.CoinScraper.rds_upload')
+    @patch('AWS_storage.AWS_Data_Storage.upload_raw_data_dir_to_s3')
+    @patch('AWS_storage.AWS_Data_Storage.local_save_img')
+    @patch('AWS_storage.AWS_Data_Storage.local_save_data')
+    def test_save_option(self,
+                            mock_local_save_data: Mock,
+                            mock_local_save_img: Mock,
+                            mock_upload_raw_data_dir_to_s3: Mock,
+                            mock_rds_upload: Mock
+                            ):
+        #pass option 4 in to test if functions for data saved locally and uploaded to AWS S3 and RDS are called
+        self.cs.save_option(4)
+        mock_local_save_data.assert_called_once()
+        mock_local_save_img.assert_called_once()
+        mock_upload_raw_data_dir_to_s3.assert_called_once()
+        mock_rds_upload.assert_called_once()
+
 
 unittest.main(argv=[''], verbosity=2, exit=False)
 #verbosity denotes detail of pass/fail
